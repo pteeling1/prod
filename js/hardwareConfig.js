@@ -1,7 +1,7 @@
 // hardwareConfig.js
 
 // 🧠 DIMM sizes in GB
-export const dimmSizesGB = [16, 32, 64, 96, 128];
+export const dimmSizesGB = [16, 32, 64, 96, 128, 256];
 
 // 🧮 Valid DIMM population counts
 export const dimmQuantities = [8, 12, 16, 24, 32];

@@ -205,8 +205,17 @@ const workloadList = document.getElementById("workloadList");
   }
 
   function updateMemoryOptions() {
+    const selectedChassis = document.querySelector('input[name="nodeType"]:checked')?.value || "AX 770";
+    const is17G = selectedChassis === "AX 670" || selectedChassis === "AX 770";
+    
+    // Memory options that require 256GB DIMMs (only available in 17G systems)
+    const requires256GBDIMM = [2048, 3072, 4096, 6144, 8192];
+    
     memorySelect.innerHTML = "";
     memoryOptions.forEach(size => {
+      // Exclude 256GB DIMM-dependent options for non-17G systems
+      if (requires256GBDIMM.includes(size) && !is17G) return;
+      
       const option = document.createElement("option");
       option.value = size;
       option.textContent = `${size} GB`;

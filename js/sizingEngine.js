@@ -138,15 +138,19 @@ function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLe
 
 const sweetSpot = nodesNeeded >= 4 && nodesNeeded <= 6;
 
+    const clockBonus = cpu.base_clock_GHz * -100; // Higher clock speed gets lower (better) score
+
     const score =
       totalPhysicalCores * 12 +
       nodesNeeded * 800 +
       coreOvershoot * 20 +
       (nodesNeeded > 7 ? 2500 : 0) +
-      (sweetSpot ? -3000 : 0);
+      (sweetSpot ? -3000 : 0) +
+      clockBonus;
 cpuScoreLog.push({
   CPU: cpu.model,
   CoresPerSocket: cpu.cores,
+  ClockGHz: cpu.base_clock_GHz,
   Nodes: nodesNeeded,
   TotalPhysicalCores: totalPhysicalCores,
   Score: Math.round(score)

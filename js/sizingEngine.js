@@ -168,6 +168,10 @@ cpuScoreLog.push({
     } else if (score === bestCandidate.score && cpu.base_clock_GHz > bestCandidate.cpu.base_clock_GHz) {
       // Tie-breaker: if scores are equal, prefer higher clock speed
       bestCandidate = candidate;
+    } else if (cpu.cores === bestCandidate.cpu.cores && nodesNeeded === bestCandidate.nodesNeeded &&
+               cpu.base_clock_GHz > bestCandidate.cpu.base_clock_GHz) {
+      // Strong preference: if same core count and same node count, pick higher clock speed
+      bestCandidate = candidate;
     }
 
     if (cpu.model.includes("Gold 6") &&
@@ -176,6 +180,11 @@ cpuScoreLog.push({
     } else if (cpu.model.includes("Gold 6") && score === bestGoldCandidate.score && 
                cpu.base_clock_GHz > bestGoldCandidate.cpu.base_clock_GHz) {
       // Tie-breaker: if scores are equal, prefer higher clock speed
+      bestGoldCandidate = candidate;
+    } else if (cpu.model.includes("Gold 6") && cpu.cores === bestGoldCandidate.cpu.cores && 
+               nodesNeeded === bestGoldCandidate.nodesNeeded &&
+               cpu.base_clock_GHz > bestGoldCandidate.cpu.base_clock_GHz) {
+      // Strong preference: if same core count and same node count, pick higher clock speed
       bestGoldCandidate = candidate;
     }
   }

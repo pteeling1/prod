@@ -170,7 +170,15 @@ cpuScoreLog.push({
       bestCandidate = candidate;
     } else if (cpu.cores === bestCandidate.cpu.cores && nodesNeeded === bestCandidate.nodesNeeded &&
                cpu.base_clock_GHz > bestCandidate.cpu.base_clock_GHz) {
-      // Strong preference: if same core count and same node count, pick higher clock speed
+      // Strong preference: if same core count and same node count, ALWAYS pick higher clock speed
+      // even if score is slightly worse - higher clock is better for performance
+      bestCandidate = candidate;
+    } else if (cpu.cores === bestCandidate.cpu.cores && 
+               Math.abs(nodesNeeded - bestCandidate.nodesNeeded) <= 1 &&
+               cpu.base_clock_GHz > bestCandidate.cpu.base_clock_GHz &&
+               Math.abs(score - bestCandidate.score) < 500) {
+      // If cores match and node counts are very close (within 1) and clock is higher,
+      // and score difference is negligible, prefer higher clock
       bestCandidate = candidate;
     }
 
@@ -184,7 +192,14 @@ cpuScoreLog.push({
     } else if (cpu.model.includes("Gold 6") && cpu.cores === bestGoldCandidate.cpu.cores && 
                nodesNeeded === bestGoldCandidate.nodesNeeded &&
                cpu.base_clock_GHz > bestGoldCandidate.cpu.base_clock_GHz) {
-      // Strong preference: if same core count and same node count, pick higher clock speed
+      // Strong preference: if same core count and same node count, ALWAYS pick higher clock speed
+      bestGoldCandidate = candidate;
+    } else if (cpu.model.includes("Gold 6") && cpu.cores === bestGoldCandidate.cpu.cores && 
+               Math.abs(nodesNeeded - bestGoldCandidate.nodesNeeded) <= 1 &&
+               cpu.base_clock_GHz > bestGoldCandidate.cpu.base_clock_GHz &&
+               Math.abs(score - bestGoldCandidate.score) < 500) {
+      // If cores match and node counts are very close (within 1) and clock is higher,
+      // and score difference is negligible, prefer higher clock
       bestGoldCandidate = candidate;
     }
   }

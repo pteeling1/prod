@@ -945,7 +945,9 @@ diskSlider.addEventListener("input", () => {
   diskValueDisplay.textContent = diskSlider.value;
   calculateTotals();
   updateLegend();
-  recalculateSizingFromUI();
+  
+  // Just refresh the visuals with the new disk count, don't recalculate sizing
+  refreshAllVisuals();
 });
 
 [diskSizeSelect, cpuSelect, memorySelect, resiliencySelect].forEach(el =>

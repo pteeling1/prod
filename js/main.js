@@ -367,7 +367,8 @@ function renderWorkloadSummary(payload) {
   const cpu = cpuList.find(c => c.model === cpuModel);
 
   const totalCores = cpu ? cpu.cores * nodes * 2 : "N/A";
-  const totalGHz = cpu ? (cpu.base_clock_GHz * totalCores) : 0;
+  const totalGHzRaw = cpu ? (cpu.base_clock_GHz * totalCores) : 0;
+  const totalGHz = Number.isFinite(totalGHzRaw) ? Math.round(totalGHzRaw) : totalGHzRaw;
 const totalUsableCores = totalCores - 4;
   const results = calculateUsableStorage(nodes, disksPerNode, diskSizeTB, resiliency);
 const totalMemoryGB = memorySize * nodes;

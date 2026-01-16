@@ -1,0 +1,139 @@
+{
+  "clusters": [
+    {
+      "location": "Mumbai",
+      "name": "INNMB-GEN-ORA1",
+      "type": "Oracle",
+      "totalCores": 144,
+      "totalGHz": 302,
+      "totalMemoryTiB": 1.1,
+      "storageUsedTiB": 6.12
+    },
+    {
+      "location": "Mumbai",
+      "name": "INNMB-GEN-WLD1",
+      "type": "Gen",
+      "totalCores": 192,
+      "totalGHz": 516,
+      "totalMemoryTiB": 11.99,
+      "storageUsedTiB": 178.68
+    },
+    {
+      "location": "Singapore",
+      "name": "sgsg1-MGMT",
+      "type": "Mgmt",
+      "totalCores": 144,
+      "totalGHz": 315.36,
+      "totalMemoryTiB": 2.99,
+      "storageUsedTiB": 13.63
+    },
+    {
+      "location": "Singapore",
+      "name": "SGSG1-ORA1",
+      "type": "Ora",
+      "totalCores": 96,
+      "totalGHz": 267.84,
+      "totalMemoryTiB": 2.25,
+      "storageUsedTiB": 21.77
+    },
+    {
+      "location": "Singapore",
+      "name": "SGSDC-GEN-WLD1",
+      "type": "Gen",
+      "totalCores": 192,
+      "totalGHz": 574.08,
+      "totalMemoryTiB": 17.98,
+      "storageUsedTiB": 159.92
+    },
+    {
+      "location": "Singapore",
+      "name": "SGSDC-VDI1",
+      "type": "VDI",
+      "totalCores": 624,
+      "totalGHz": 1866,
+      "totalMemoryTiB": 19.48,
+      "storageUsedTiB": 26.91
+    },
+    {
+      "location": "UK",
+      "name": "ukldc-MGMT",
+      "type": "Mgmt",
+      "totalCores": 144,
+      "totalGHz": 315.36,
+      "totalMemoryTiB": 2.99,
+      "storageUsedTiB": 10.48
+    },
+    {
+      "location": "UK",
+      "name": "ukldc-ORA1",
+      "type": "Ora",
+      "totalCores": 192,
+      "totalGHz": 403.2,
+      "totalMemoryTiB": 2.99,
+      "storageUsedTiB": 34.86
+    },
+    {
+      "location": "UK",
+      "name": "ukldc-DB1",
+      "type": "SQL",
+      "totalCores": 144,
+      "totalGHz": 358.56,
+      "totalMemoryTiB": 6.74,
+      "storageUsedTiB": 50.17
+    },
+    {
+      "location": "UK",
+      "name": "ukldc-WLDC1",
+      "type": "Gen",
+      "totalCores": 480,
+      "totalGHz": 1195.2,
+      "totalMemoryTiB": 23.99,
+      "storageUsedTiB": 404.79
+    },
+    {
+      "location": "Houston",
+      "name": "ushdc-MGMT",
+      "type": "Mgmt",
+      "totalCores": 144,
+      "totalGHz": 315.36,
+      "totalMemoryTiB": 2.99,
+      "storageUsedTiB": 16.71
+    },
+    {
+      "location": "Houston",
+      "name": "ushdc-WLDC1",
+      "type": "Gen",
+      "totalCores": 576,
+      "totalGHz": 1491.84,
+      "totalMemoryTiB": 21.73,
+      "storageUsedTiB": 4.05
+    },
+    {
+      "location": "Houston",
+      "name": "ushdc-WLDC2",
+      "type": "Gen",
+      "totalCores": 448,
+      "totalGHz": 1249.92,
+      "totalMemoryTiB": 10.5,
+      "storageUsedTiB": 144.64
+    },
+    {
+      "location": "Perth",
+      "name": "AUPDC-GEN-WLD1",
+      "type": "Gen",
+      "totalCores": 192,
+      "totalGHz": 516.48,
+      "totalMemoryTiB": 5.99,
+      "storageUsedTiB": 116.18
+    },
+    {
+      "location": "Calgary",
+      "name": "cacdc-MGMT",
+      "type": "Mgmt",
+      "totalCores": 144,
+      "totalGHz": 315.36,
+      "totalMemoryTiB": 2.99,
+      "storageUsedTiB": 9.05
+    }
+  ]
+}

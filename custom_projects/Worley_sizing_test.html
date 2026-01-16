@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worley Sizing Engine Test</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #0066cc;
+      padding-bottom: 10px;
+    }
+    .test-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .cluster-result {
+      border-left: 4px solid #0066cc;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #f9f9f9;
+      border-radius: 4px;
+    }
+    .cluster-result.error {
+      border-left-color: #d32f2f;
+      background: #ffebee;
+    }
+    .cluster-result.success {
+      border-left-color: #388e3c;
+      background: #f1f8e9;
+    }
+    .input-section {
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    .output-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 10px;
+    }
+    .metric {
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .metric-label {
+      font-size: 0.85em;
+      color: #666;
+      text-transform: uppercase;
+    }
+    .metric-value {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #0066cc;
+      margin-top: 5px;
+    }
+    button {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      margin-bottom: 20px;
+    }
+    button:hover {
+      background: #0052a3;
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 0.85em;
+    }
+    .summary-table th {
+      background: #0066cc;
+      color: white;
+      padding: 8px;
+      text-align: left;
+      font-weight: bold;
+    }
+    .summary-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #ddd;
+    }
+    .summary-table tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+  <h1>🧪 Worley Sizing Data - AX Calculator Engine Test</h1>
+  
+  <div class="test-container">
+    <div style="margin-bottom: 15px;">
+      <label style="display: flex; align-items: center; font-size: 1.05em; cursor: pointer; margin-bottom: 10px;">
+        <input type="checkbox" id="useExternalStorage" style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
+        <span>Use External Storage (2 × 960GB disks per node)</span>
+      </label>
+      <label style="display: flex; align-items: center; font-size: 1.05em; gap: 10px;">
+        <span>Max CPU Utilization:</span>
+        <input type="number" id="maxCPUUtilization" min="10" max="95" value="60" style="width: 60px; padding: 5px; font-size: 1em;">
+        <span>%</span>
+      </label>
+      <label style="display: flex; align-items: center; font-size: 1.05em; gap: 10px; margin-top: 8px;">
+        <span>Max Memory Utilization:</span>
+        <input type="number" id="maxMemoryUtilization" min="10" max="95" value="60" style="width: 60px; padding: 5px; font-size: 1em;">
+        <span>%</span>
+      </label>
+    </div>
+    <button onclick="runTests('AX 660')">▶️ Run Tests (AX 660)</button>
+    <button onclick="runTests('AX 760')">▶️ Run Tests (AX 760)</button>
+    <button onclick="runTests('AX 770')">▶️ Run Tests (AX 770)</button>
+    <button onclick="exportToExcel()" style="background: #388e3c; margin-left: 10px;">📊 Export to Excel</button>
+    <button onclick="exportToPDF()" style="background: #d32f2f; margin-left: 5px;">📄 Export to PDF</button>
+    <div id="results"></div>
+  </div>
+
+  <script type="module">
+    // Import sizing engine
+    import { sizeCluster } from '../js/sizingEngine.js';
+
+    // Test data - all cores calculated as: totalCores * (peakGHz / totalGHz)
+    const testClusters = [
+      {
+        location: "Mumbai",
+        name: "INNMB-GEN-ORA1",
+        type: "Oracle",
+        totalCores: 33,
+        totalGHz: 69,
+        totalMemoryTiB: 1.1,
+        storageUsedTiB: 6.12
+      },
+      {
+        location: "Mumbai",
+        name: "INNMB-GEN-WLD1",
+        type: "Gen",
+        totalCores: 153,
+        totalGHz: 415,
+        totalMemoryTiB: 11.99,
+        storageUsedTiB: 178.68
+      },
+      {
+        location: "Singapore",
+        name: "sgsg1-MGMT",
+        type: "Mgmt",
+        totalCores: 54,
+        totalGHz: 119,
+        totalMemoryTiB: 2.99,
+        storageUsedTiB: 13.63
+      },
+      {
+        location: "Singapore",
+        name: "SGSG1-ORA1",
+        type: "Ora",
+        totalCores: 54,
+        totalGHz: 150,
+        totalMemoryTiB: 2.25,
+        storageUsedTiB: 21.77
+      },
+      {
+        location: "Singapore",
+        name: "SGSDC-GEN-WLD1",
+        type: "Gen",
+        totalCores: 192,
+        totalGHz: 573,
+        totalMemoryTiB: 17.98,
+        storageUsedTiB: 159.92
+      },
+      {
+        location: "Singapore",
+        name: "SGSDC-VDI1",
+        type: "VDI",
+        totalCores: 190,
+        totalGHz: 568,
+        totalMemoryTiB: 19.48,
+        storageUsedTiB: 26.91
+      },
+      {
+        location: "Singapore",
+        name: "SGSDC-VDI2",
+        type: "VDI",
+        totalCores: 145,
+        totalGHz: 434,
+        totalMemoryTiB: 8.24,
+        storageUsedTiB: 15.23
+      },
+      {
+        location: "Singapore",
+        name: "SGSDC-VDI3",
+        type: "VDI",
+        totalCores: 166,
+        totalGHz: 498,
+        totalMemoryTiB: 8.24,
+        storageUsedTiB: 15.63
+      },
+      {
+        location: "Singapore",
+        name: "SGSDC-VDI4",
+        type: "VDI",
+        totalCores: 187,
+        totalGHz: 561,
+        totalMemoryTiB: 8.24,
+        storageUsedTiB: 13.43
+      },
+      {
+        location: "UK",
+        name: "ukldc-MGMT",
+        type: "Mgmt",
+        totalCores: 82,
+        totalGHz: 179,
+        totalMemoryTiB: 2.99,
+        storageUsedTiB: 10.48
+      },
+      {
+        location: "UK",
+        name: "ukldc-ORA1",
+        type: "Ora",
+        totalCores: 103,
+        totalGHz: 216,
+        totalMemoryTiB: 2.99,
+        storageUsedTiB: 34.86
+      },
+      {
+        location: "UK",
+        name: "ukldc-DB1",
+        type: "SQL",
+        totalCores: 114,
+        totalGHz: 283,
+        totalMemoryTiB: 6.74,
+        storageUsedTiB: 50.17
+      },
+      {
+        location: "UK",
+        name: "ukldc-WLDC1",
+        type: "Gen",
+        totalCores: 480,
+        totalGHz: 1195,
+        totalMemoryTiB: 23.99,
+        storageUsedTiB: 404.79
+      },
+      {
+        location: "UK",
+        name: "ukldc-VDI1",
+        type: "VDI",
+        totalCores: 429,
+        totalGHz: 1289,
+        totalMemoryTiB: 19.48,
+        storageUsedTiB: 93.39
+      },
+      {
+        location: "Houston",
+        name: "ushdc-MGMT",
+        type: "Mgmt",
+        totalCores: 65,
+        totalGHz: 142,
+        totalMemoryTiB: 2.99,
+        storageUsedTiB: 16.71
+      },
+      {
+        location: "Houston",
+        name: "ushdc-ORA1",
+        type: "Ora",
+        totalCores: 87,
+        totalGHz: 182,
+        totalMemoryTiB: 2.99,
+        storageUsedTiB: 31.34
+      },
+      {
+        location: "Houston",
+        name: "ushdc-DB1",
+        type: "SQL",
+        totalCores: 80,
+        totalGHz: 239,
+        totalMemoryTiB: 7.49,
+        storageUsedTiB: 91.43
+      },
+      {
+        location: "Houston",
+        name: "ushdc-WLDC1",
+        type: "Gen",
+        totalCores: 473,
+        totalGHz: 1227,
+        totalMemoryTiB: 21.73,
+        storageUsedTiB: 4.05
+      },
+      {
+        location: "Houston",
+        name: "ushdc-WLDC2",
+        type: "Gen",
+        totalCores: 382,
+        totalGHz: 1066,
+        totalMemoryTiB: 10.5,
+        storageUsedTiB: 144.64
+      },
+      {
+        location: "Houston",
+        name: "USHDC-VDI1",
+        type: "VDI",
+        totalCores: 116,
+        totalGHz: 347,
+        totalMemoryTiB: 19.48,
+        storageUsedTiB: 39.49
+      },
+      {
+        location: "Perth",
+        name: "AUPDC-GEN-WLD1",
+        type: "Gen",
+        totalCores: 107,
+        totalGHz: 286,
+        totalMemoryTiB: 5.99,
+        storageUsedTiB: 116.18
+      },
+      {
+        location: "Calgary",
+        name: "cacdc-MGMT",
+        type: "Mgmt",
+        totalCores: 54,
+        totalGHz: 118,
+        totalMemoryTiB: 2.99,
+        storageUsedTiB: 9.05
+      },
+      {
+        location: "Calgary",
+        name: "cacdc-DB1",
+        type: "SQL",
+        totalCores: 50,
+        totalGHz: 151,
+        totalMemoryTiB: 2.99,
+        storageUsedTiB: 33.06
+      },
+      {
+        location: "Calgary",
+        name: "cacdc-WLD1C1",
+        type: "Gen",
+        totalCores: 124,
+        totalGHz: 284,
+        totalMemoryTiB: 6.74,
+        storageUsedTiB: 99.98
+      }
+    ];
+
+    window.runTests = function(chassisModel = 'AX 770') {
+      const resultsDiv = document.getElementById('results');
+      const useExternalStorage = document.getElementById('useExternalStorage').checked;
+      const maxCPUUtilization = parseInt(document.getElementById('maxCPUUtilization').value) / 100;
+      const maxMemoryUtilization = parseInt(document.getElementById('maxMemoryUtilization').value) / 100;
+      let html = `<h2 style="color: #0066cc; margin-top: 20px;">Testing with ${chassisModel}${useExternalStorage ? ' (External Storage)' : ''}</h2>`;
+      let summaryRows = '';
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const cluster of testClusters) {
+        try {
+          // Convert units
+          const totalRAMGB = cluster.totalMemoryTiB * 1024;
+          // If using external storage, ignore storage requirements
+          const totalStorageTiB = useExternalStorage ? 0 : cluster.storageUsedTiB;
+
+          // Build sizing request
+          const req = {
+            totalCPU: cluster.totalCores,
+            totalGHz: 0, // Use cores, not GHz
+            totalRAM: totalRAMGB,
+            totalStorage: totalStorageTiB,
+            haLevel: 'n+1',
+            chassisModel: chassisModel,
+            growthPct: 0,
+            switchMode: 'separate',
+            useExternalStorage: useExternalStorage,
+            maxCPUUtilization: maxCPUUtilization,
+            maxMemoryUtilization: maxMemoryUtilization
+          };
+
+          const result = sizeCluster(req);
+          successCount++;
+
+          // Override disk info if using external storage
+          const disksDisplay = useExternalStorage 
+            ? '2 × 960 GB' 
+            : `${result.disksPerNode} × ${result.diskSizeTB} TB`;
+
+          html += `
+            <div class="cluster-result success">
+              <div style="font-weight: bold; margin-bottom: 10px;">
+                📍 ${cluster.location} - ${cluster.name} (${cluster.type})
+              </div>
+              <div class="input-section">
+                Input Requirements: ${cluster.totalCores} cores | ${cluster.totalMemoryTiB} TiB RAM | ${useExternalStorage ? 'External Storage' : cluster.storageUsedTiB + ' TiB storage'}
+              </div>
+              <div class="output-section">
+                <div class="metric">
+                  <div class="metric-label">Nodes Required</div>
+                  <div class="metric-value">${result.nodeCount}</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">Clusters</div>
+                  <div class="metric-value">${result.clusterCount}</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">CPU Model</div>
+                  <div class="metric-value">${result.cpuModel}</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">Memory per Node</div>
+                  <div class="metric-value">${result.memorySizeGB} GB</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">Disks per Node</div>
+                  <div class="metric-value">${disksDisplay}</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">Storage Resiliency</div>
+                  <div class="metric-value">${result.storageResiliency}</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">Raw Storage</div>
+                  <div class="metric-value">${result.clusterSummaries && result.clusterSummaries[0] ? result.clusterSummaries[0].rawTiB : 'N/A'} TiB</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">Usable Storage</div>
+                  <div class="metric-value">${result.usableTiB} TiB</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">CPU Utilization</div>
+                  <div class="metric-value">${result.efficiency.cpuUtilization}</div>
+                </div>
+                <div class="metric">
+                  <div class="metric-label">Memory Utilization</div>
+                  <div class="metric-value">${result.efficiency.memoryUtilization}</div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          summaryRows += `
+            <tr>
+              <td>${cluster.location}</td>
+              <td>${cluster.name}</td>
+              <td>${cluster.type}</td>
+              <td>${cluster.totalCores}</td>
+              <td>${cluster.totalMemoryTiB}</td>
+              <td>${cluster.storageUsedTiB}</td>
+              <td style="font-weight: bold; color: #0066cc;">${result.nodeCount}</td>
+              <td>${result.cpuModel}</td>
+              <td>${result.totalUsableCores}</td>
+              <td>${result.totalClusterResources?.postFailure?.usableCores || 'N/A'}</td>
+              <td>${result.memorySizeGB} GB</td>
+              <td>${(result.memorySizeGB * result.nodeCount * 0.96).toFixed(0)} GB</td>
+              <td>${(result.memorySizeGB * (result.nodeCount - 1) * 0.96).toFixed(0)} GB</td>
+              <td>${useExternalStorage ? '2' : result.disksPerNode}</td>
+              <td>${useExternalStorage ? '960 GB' : result.diskSizeTB + ' TB'}</td>
+              <td>${result.usableTiB} TiB</td>
+              <td>${result.efficiency.cpuUtilization}</td>
+              <td>${result.efficiency.memoryUtilization}</td>
+            </tr>
+          `;
+
+        } catch (err) {
+          errorCount++;
+          html += `
+            <div class="cluster-result error">
+              <div style="font-weight: bold; margin-bottom: 10px;">
+                ❌ ${cluster.location} - ${cluster.name}
+              </div>
+              <div style="color: #d32f2f;">Error: ${err.message}</div>
+            </div>
+          `;
+        }
+      }
+
+      // Add summary table
+      html += `
+        <div class="test-container">
+          <h2>📊 Summary Table (${chassisModel})</h2>
+          <p>Tests Run: ${testClusters.length} | ✅ Success: ${successCount} | ❌ Errors: ${errorCount}</p>
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>Location</th>
+                <th>Cluster Name</th>
+                <th>Type</th>
+                <th>Cores</th>
+                <th>RAM (TiB)</th>
+                <th>Storage (TiB)</th>
+                <th>Nodes</th>
+                <th>CPU Model</th>
+                <th>Cores Provided</th>
+                <th>Cores (N-1)</th>
+                <th>Memory/Node (GB)</th>
+                <th>Total Memory (GB)</th>
+                <th>Total Memory (N-1) (GB)</th>
+                <th>Disks</th>
+                <th>Disk Size</th>
+                <th>Usable TiB</th>
+                <th>CPU Util</th>
+                <th>Memory Util</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${summaryRows}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      resultsDiv.innerHTML = html;
+      
+      // Store current test data for export
+      window.lastTestData = { testClusters, summaryRows, successCount, errorCount, chassisModel, useExternalStorage };
+    };
+  </script>
+
+  <script>
+    // Export to Excel function (outside module scope to access XLSX global)
+    window.exportToExcel = function() {
+      if (!window.XLSX) {
+        alert('Excel library failed to load. Please refresh the page and try again.');
+        return;
+      }
+      
+      if (!window.lastTestData) {
+        alert('Please run tests first before exporting');
+        return;
+      }
+
+      const { testClusters, summaryRows, successCount, errorCount, chassisModel, useExternalStorage } = window.lastTestData;
+      
+      // Create Summary Excel file
+      const summaryWB = window.XLSX.utils.book_new();
+      const summaryData = [
+        ['Location', 'Cluster Name', 'Type', 'Cores Required', 'RAM (TiB)', 'Storage (TiB)', 'Nodes', 'CPU Model', 'CPU Provided', 'Memory Provided (GB)', 'Disks/Node', 'Disk Size', 'Usable Storage (TiB)', 'CPU Utilization', 'Memory Utilization']
+      ];
+
+      // Parse summary table rows (they contain HTML, so extract values)
+      const resultsDiv = document.getElementById('results');
+      const table = resultsDiv.querySelector('.summary-table');
+      if (table) {
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          const rowData = [];
+          cells.forEach(cell => {
+            rowData.push(cell.textContent.trim());
+          });
+          if (rowData.length > 0) {
+            summaryData.push(rowData);
+          }
+        });
+      }
+
+      const summaryWS = window.XLSX.utils.aoa_to_sheet(summaryData);
+      window.XLSX.utils.book_append_sheet(summaryWB, summaryWS, 'Summary');
+      
+      // Auto-fit columns
+      const colWidths = [15, 20, 12, 15, 12, 15, 10, 20, 15, 20, 12, 15, 18, 18];
+      summaryWS['!cols'] = colWidths.map(w => ({ wch: w }));
+
+      // Create Details Excel file with one row per cluster metric
+      const detailsWB = window.XLSX.utils.book_new();
+      
+      // Extract detailed results from the displayed HTML
+      const detailsData = [];
+      const clusterCards = resultsDiv.querySelectorAll('.cluster-result.success');
+      
+      clusterCards.forEach((card, idx) => {
+        const headerDiv = card.querySelector('[style*="font-weight: bold"]');
+        const inputDiv = card.querySelector('.input-section');
+        const metrics = card.querySelectorAll('.metric');
+        
+        if (headerDiv && inputDiv) {
+          const header = headerDiv.textContent.trim();
+          const input = inputDiv.textContent.replace('Input Requirements: ', '').trim();
+          
+          // Add header row for this cluster
+          if (idx === 0) {
+            detailsData.push(['Cluster', 'Metric', 'Value']);
+          }
+          
+          detailsData.push([header, 'Requirements', input]);
+          
+          // Add each metric
+          metrics.forEach(metric => {
+            const label = metric.querySelector('.metric-label').textContent.trim();
+            const value = metric.querySelector('.metric-value').textContent.trim();
+            detailsData.push(['', label, value]);
+          });
+          
+          // Add blank row between clusters
+          detailsData.push(['', '', '']);
+        }
+      });
+
+      const detailsWS = window.XLSX.utils.aoa_to_sheet(detailsData);
+      window.XLSX.utils.book_append_sheet(detailsWB, detailsWS, 'Details');
+      
+      // Auto-fit columns for details
+      detailsWS['!cols'] = [
+        { wch: 35 },
+        { wch: 25 },
+        { wch: 50 }
+      ];
+
+      // Download both files
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const storageMode = useExternalStorage ? '_ExternalStorage' : '_InternalStorage';
+      
+      window.XLSX.writeFile(summaryWB, `Worley_Sizing_Summary_${chassisModel}${storageMode}_${timestamp}.xlsx`);
+      
+      // Small delay to prevent browser issues with simultaneous downloads
+      setTimeout(() => {
+        window.XLSX.writeFile(detailsWB, `Worley_Sizing_Details_${chassisModel}${storageMode}_${timestamp}.xlsx`);
+      }, 100);
+      
+      alert('✅ Excel files exported successfully!');
+    };
+
+    // Export to PDF function - structured text-based PDF
+    window.exportToPDF = function() {
+      if (!window.lastTestData) {
+        alert('Please run tests first before exporting');
+        return;
+      }
+
+      const { chassisModel, useExternalStorage } = window.lastTestData;
+      
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        // Get all detail cards from the displayed results
+        const resultsDiv = document.getElementById('results');
+        const clusterCards = resultsDiv.querySelectorAll('.cluster-result.success');
+        
+        let pageNum = 1;
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        let currentY = 15;
+
+        // Helper function to add a new page
+        const addNewPage = () => {
+          pdf.addPage();
+          currentY = 15;
+          pageNum++;
+          // Add page number
+          pdf.setFontSize(10);
+          pdf.text(`Page ${pageNum}`, 10, pageHeight - 10);
+        };
+
+        // Title
+        pdf.setFontSize(16);
+        pdf.text('Worley Cluster Sizing Report', 10, currentY);
+        currentY += 10;
+
+        pdf.setFontSize(10);
+        pdf.text(`Chassis: ${chassisModel} | Storage: ${useExternalStorage ? 'External' : 'Internal'}`, 10, currentY);
+        currentY += 5;
+        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 10, currentY);
+        currentY += 10;
+
+        // Process each cluster card
+        clusterCards.forEach((card, idx) => {
+          // Get cluster info
+          const headerDiv = card.querySelector('.cluster-result.success > div:first-child');
+          const inputDiv = card.querySelector('.input-section');
+          const metrics = card.querySelectorAll('.metric');
+
+          if (headerDiv && inputDiv) {
+            // Check if we need a new page
+            if (currentY + 30 > pageHeight - 20) {
+              addNewPage();
+            }
+
+            // Extract and clean header text
+            let header = '';
+            if (headerDiv) {
+              header = headerDiv.textContent.trim().replace(/[^\w\s\-()]/g, '');
+              // Clean up the header by removing extra spaces
+              header = header.replace(/\s+/g, ' ');
+            }
+            
+            const input = inputDiv.textContent.replace('Input Requirements: ', '').trim();
+
+            // Cluster header
+            pdf.setFontSize(11);
+            pdf.setTextColor(0, 102, 204);
+            pdf.text(`${idx + 1}. ${header}`, 10, currentY);
+            currentY += 6;
+
+            // Input requirements
+            pdf.setFontSize(9);
+            pdf.setTextColor(80, 80, 80);
+            pdf.text(`Requirements: ${input}`, 12, currentY);
+            currentY += 8;
+
+            // Create table for metrics
+            const tableData = [];
+            metrics.forEach(metric => {
+              const label = metric.querySelector('.metric-label').textContent.trim();
+              const value = metric.querySelector('.metric-value').textContent.trim();
+              tableData.push([label, value]);
+            });
+
+            // Add table
+            pdf.autoTable({
+              startY: currentY,
+              head: [['Metric', 'Value']],
+              body: tableData,
+              theme: 'grid',
+              headStyles: {
+                fillColor: [0, 102, 204],
+                textColor: 255,
+                fontSize: 9,
+                fontStyle: 'bold'
+              },
+              bodyStyles: {
+                fontSize: 8,
+                textColor: 50
+              },
+              columnStyles: {
+                0: { cellWidth: 80 },
+                1: { cellWidth: 70 }
+              },
+              margin: { left: 10, right: 10 }
+            });
+
+            currentY = pdf.lastAutoTable.finalY + 8;
+          }
+        });
+
+        // Add final page number
+        pdf.setFontSize(10);
+        pdf.text(`Page ${pageNum}`, 10, pageHeight - 10);
+
+        // Save PDF
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const storageMode = useExternalStorage ? '_ExternalStorage' : '_InternalStorage';
+        pdf.save(`Worley_Sizing_Details_${chassisModel}${storageMode}_${timestamp}.pdf`);
+
+        alert('✅ PDF exported successfully!');
+      } catch (err) {
+        console.error('PDF export error:', err);
+        alert('Error generating PDF: ' + err.message);
+      }
+    };
+  </script>
+</body>
+</html>

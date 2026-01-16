@@ -79,7 +79,7 @@ function calculateResourceOvershootPenalty(actual, required, weight = 1, maxPena
 
 // 🎯 Optimized CPU Selection
 
-function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLevel, workloadType, cpuListOverride = cpuList) {
+function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLevel, workloadType, cpuListOverride = cpuList, maxCPUUtilization = 0.60, maxMemoryUtilization = 0.60) {
   if (requiredCores <= 0) throw new Error("Required cores must be greater than 0");
 
   let bestCandidate = null;
@@ -101,7 +101,14 @@ function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLe
         ? (nodesNeeded - 1) * usableCoresPerNode - SYS_CPU
         : nodesNeeded * usableCoresPerNode - SYS_CPU;
 
-      if (survivableCores >= requiredCores) break;
+      // Check if survivable cores meet requirement
+      if (survivableCores >= requiredCores) {
+        // Also ensure CPU utilization won't exceed max threshold
+        const totalUsableCoresCheck = nodesNeeded * usableCoresPerNode - SYS_CPU;
+        const utilizationCheck = requiredCores / totalUsableCoresCheck;
+        if (utilizationCheck <= maxCPUUtilization) break;
+      }
+      
       nodesNeeded++;
       if (nodesNeeded > 512) break;
     }
@@ -689,8 +696,14 @@ function sizeCluster(req) {
     growthPct = 0,
     haLevel = "n+1",
     chassisModel = "AX 770",
-    switchMode = "separate"
+    switchMode = "separate",
+    maxCPUUtilization = 0.60,
+    maxMemoryUtilization = 0.60
   } = req;
+
+  // Adjust memory requirement to account for max memory utilization constraint
+  // If maxMemoryUtilization is 60%, we need to provision for totalRAM / 0.60
+  const adjustedTotalRAM = totalRAM / maxMemoryUtilization;
 
   
 
@@ -712,10 +725,10 @@ let postFailureCapabilities = null;
   try {
     if (totalGHz > 0) {
       primaryConstraint = "GHz";
-      baseCpuSelection = selectOptimalCpuForGHz(totalGHz, totalRAM, totalStorage, haLevel, filteredCpuList);
+      baseCpuSelection = selectOptimalCpuForGHz(totalGHz, adjustedTotalRAM, totalStorage, haLevel, filteredCpuList);
     } else if (totalCPU > 0) {
       primaryConstraint = "Cores";
-      baseCpuSelection = selectOptimalCpuForCores(totalCPU, totalRAM, totalStorage, haLevel, null, filteredCpuList);
+      baseCpuSelection = selectOptimalCpuForCores(totalCPU, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization);
     } else {
       throw new Error("Must specify either totalCPU (cores) or totalGHz requirement");
     }
@@ -723,7 +736,7 @@ let postFailureCapabilities = null;
     console.warn(`⚠️ Primary CPU selection failed: ${err.message}`);
     console.warn("🔁 Falling back to 8-core sizing attempt…");
     try {
-      baseCpuSelection = selectOptimalCpuForCores(8, totalRAM, totalStorage, haLevel, null, filteredCpuList);
+      baseCpuSelection = selectOptimalCpuForCores(8, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization);
       primaryConstraint = "Fallback (8 cores)";
     } catch (fallbackErr) {
       throw new Error(`❌ Fallback sizing also failed: ${fallbackErr.message}`);
@@ -743,11 +756,16 @@ let postFailureCapabilities = null;
   const cpuNodesNeeded = baseCpuSelection.nodesNeeded || 
     Math.ceil((totalCPU + SYS_CPU) / baseCoresPerNode);
 
-  // 2. Memory constraint: nodes needed to meet memory requirement
-  const tempMemoryConfig = selectOptimalMemoryConfig(totalRAM, 3, haLevel);
-  const memoryNodesNeeded = haLevel === "n+1"
-    ? Math.ceil(totalRAM / tempMemoryConfig.usableMemoryPerNode) + 1
-    : Math.ceil(totalRAM / tempMemoryConfig.usableMemoryPerNode);
+  // 2. Memory constraint: nodes needed to meet memory requirement with utilization limit
+  // Memory requirement already adjusted upfront, so calculate nodes for adjusted amount
+  // Find optimal memory config for the adjusted RAM requirement
+  let tempMemoryConfig = selectOptimalMemoryConfig(adjustedTotalRAM, 3, haLevel);
+  const usableMemoryPerNode = tempMemoryConfig.usableMemoryPerNode;
+  
+  // Calculate nodes needed for the adjusted memory amount
+  let memoryNodesNeeded = haLevel === "n+1"
+    ? Math.ceil(adjustedTotalRAM / usableMemoryPerNode) + 1
+    : Math.ceil(adjustedTotalRAM / usableMemoryPerNode);
 
   // 3. Start with max of CPU and memory; storage will be calculated in the loop
   let nodeCount = Math.max(cpuNodesNeeded, memoryNodesNeeded);
@@ -761,7 +779,9 @@ let postFailureCapabilities = null;
   let selectedCpu = baseCpu;
   const physicalCoresPerNode = selectedCpu.cores * 2;
   const usableCoresPerNode = physicalCoresPerNode;
-  let memoryConfig = tempMemoryConfig;
+  
+  // Use memory config appropriate for the final node count
+  let memoryConfig = selectOptimalMemoryConfig(adjustedTotalRAM, nodeCount, haLevel);
 
   // Step 2: Storage loop - find minimum nodes needed for storage constraint
   // This may increase nodeCount beyond CPU/Memory requirements
@@ -826,7 +846,7 @@ let postFailureCapabilities = null;
             usableMemoryGB: postFailureRAM,
             meetsCoreRequirement: totalCPU > 0 ? postFailureCores >= totalCPU * (size / nodeCount) : true,
             meetsGHzRequirement: totalGHz > 0 ? postFailureGHz >= totalGHz * (size / nodeCount) : true,
-            meetsRamRequirement: postFailureRAM >= totalRAM * (size / nodeCount)
+            meetsRamRequirement: postFailureRAM >= adjustedTotalRAM * (size / nodeCount)
           }
         };
       }).filter(Boolean);
@@ -859,7 +879,7 @@ let postFailureCapabilities = null;
   console.log(`📊 Node requirements - CPU: ${cpuNodesNeeded}, Memory: ${memoryNodesNeeded}, Storage: ${storageNodesNeeded}, Final: ${finalNodeCount}`);
 
   // Recalculate memory configuration for the final node count
-  const finalMemoryConfig = selectOptimalMemoryConfig(totalRAM, finalNodeCount, haLevel);
+  const finalMemoryConfig = selectOptimalMemoryConfig(adjustedTotalRAM, finalNodeCount, haLevel);
 
   // Recalculate CPU selection for the final node count
   // With more nodes available, we might be able to select a lower-core CPU while still meeting requirements
@@ -867,8 +887,8 @@ let postFailureCapabilities = null;
   try {
     // Use the full CPU selection algorithm to pick the optimal CPU for the final node count
     const recalcSelection = totalCPU > 0 
-      ? selectOptimalCpuForCores(totalCPU, totalRAM, totalStorage, haLevel, null, filteredCpuList)
-      : selectOptimalCpuForGHz(totalGHz, totalRAM, totalStorage, haLevel, filteredCpuList);
+      ? selectOptimalCpuForCores(totalCPU, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization)
+      : selectOptimalCpuForGHz(totalGHz, adjustedTotalRAM, totalStorage, haLevel, filteredCpuList);
     
     if (recalcSelection && recalcSelection.cpu) {
       finalSelectedCpu = recalcSelection.cpu;

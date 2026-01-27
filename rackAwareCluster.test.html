@@ -275,16 +275,13 @@
         <div class="config-input">
           <label for="cpuModel" class="form-label">CPU Model</label>
           <select id="cpuModel" class="form-select">
-            <option value="auto" selected>Auto-Select (Best Fit)</option>
-            <option value="Intel Xeon Gold 6336Y">Intel Xeon Gold 6336Y (32-core)</option>
-            <option value="Intel Xeon Gold 6348">Intel Xeon Gold 6348 (28-core)</option>
-            <option value="Intel Xeon Platinum 8490H">Intel Xeon Platinum 8490H (60-core)</option>
+            <option value="">Select CPU...</option>
           </select>
         </div>
         
         <div class="config-input">
-          <label for="disksPerNode" class="form-label">Disks per Node</label>
-          <input type="number" id="disksPerNode" class="form-control" value="10" min="2" max="24">
+          <label for="disksPerNode" class="form-label">Disks per Node: <span id="disksPerNodeValue">10</span></label>
+          <input type="range" id="disksPerNode" class="form-range" value="10" min="2" step="1">
         </div>
         
         <div class="config-input">
@@ -299,22 +296,16 @@
         </div>
         
         <div class="config-input">
-          <label for="dimmSize" class="form-label">Memory DIMM Size (GB)</label>
-          <select id="dimmSize" class="form-select">
-            <option value="16">16 GB</option>
-            <option value="32">32 GB</option>
-            <option value="64">64 GB</option>
-            <option value="96">96 GB</option>
-            <option value="128" selected>128 GB</option>
-            <option value="256">256 GB</option>
+          <label for="memoryPerNode" class="form-label">Memory per Node (GB)</label>
+          <select id="memoryPerNode" class="form-select">
+            <option value="">Select memory configuration...</option>
           </select>
         </div>
       </div>
       
-      <a href="index.html" class="btn btn-primary btn-lg w-100 mt-3">
-        <i class="bi bi-sliders"></i> Open Main Configuration Tool
-      </a>
-      <p class="text-muted mt-3 text-center">Use the main AX Calculator for the complete manual cluster configuration experience.</p>
+      <button id="calculateManualBtn" class="btn btn-primary btn-lg w-100 mt-3">
+        <i class="bi bi-lightning-charge"></i> Calculate Rack-Aware Options
+      </button>
     </div>
     
     <!-- Results Section -->
@@ -323,13 +314,116 @@
       <div id="successMessage" class="success-message"></div>
       <div id="resultsGrid" class="results-grid"></div>
     </div>
+    
+    <!-- Diagrams Section (Hidden by Default) -->
+    <div id="diagramsSection" style="display: none;">
+      <div class="form-section">
+        <h5><i class="bi bi-diagram-3"></i> Rack-Aware Topology Diagrams</h5>
+        
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h6 style="margin-bottom: 15px; color: #000;">Option A: Dedicated Storage Links</h6>
+              <img id="diagram-1-1" src="images/option A.png" alt="Dedicated Storage Links Diagram" style="width: 100%; max-width: 400px; border-radius: 4px; cursor: pointer;">
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h6 style="margin-bottom: 15px; color: #000;">Option B: Aggregated Storage Links</h6>
+              <img id="diagram-2-2" src="images/option B.png" alt="Aggregated Storage Links Diagram" style="width: 100%; max-width: 400px; border-radius: 4px; cursor: pointer;">
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h6 style="margin-bottom: 15px; color: #000;">Option C: Single TOR per Room</h6>
+              <img id="diagram-3-3" src="images/option C.png" alt="Single TOR per Room Diagram" style="width: 100%; max-width: 400px; border-radius: 4px; cursor: pointer;">
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h6 style="margin-bottom: 15px; color: #000;">Option D: Cross-Room Node Connectivity</h6>
+              <img id="diagram-4-4" src="images/option D.png" alt="Cross-Room Node Connectivity Diagram" style="width: 100%; max-width: 400px; border-radius: 4px; cursor: pointer;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Fault Tolerance Reference Table -->
+    <div class="form-section" style="margin-top: 40px;">
+      <h5><i class="bi bi-info-circle"></i> Fault Tolerance Reference</h5>
+      <p class="text-muted mb-3" style="font-size: 13px;">Based on <a href="https://learn.microsoft.com/en-us/azure/azure-local/concepts/rack-aware-cluster-requirements?view=azloc-2601#supported-node-configurations" target="_blank">Microsoft Azure Local Rack-Aware Cluster Requirements</a></p>
+      
+      <div style="overflow-x: auto;">
+        <table class="table table-sm table-bordered" style="margin-bottom: 0; font-size: 13px;">
+          <thead style="background: #f0f4f8;">
+            <tr>
+              <th>Configuration</th>
+              <th>Total Nodes</th>
+              <th>Mirror Type</th>
+              <th>Usable Capacity</th>
+              <th>Fault Tolerance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1+1</strong></td>
+              <td>2</td>
+              <td>2-way Mirror</td>
+              <td>50%</td>
+              <td>Single fault (drive, node, or rack)</td>
+            </tr>
+            <tr>
+              <td><strong>2+2</strong></td>
+              <td>4</td>
+              <td>4-way Mirror</td>
+              <td>25%</td>
+              <td>Three faults (drive or node). If one rack fails, the remaining can sustain one fault of drive or node.</td>
+            </tr>
+            <tr>
+              <td><strong>3+3</strong></td>
+              <td>6</td>
+              <td>4-way Mirror</td>
+              <td>25%</td>
+              <td>Three faults (drive or node). If one rack fails, the remaining can sustain one fault of drive or node.</td>
+            </tr>
+            <tr>
+              <td><strong>4+4</strong></td>
+              <td>8</td>
+              <td>4-way Mirror</td>
+              <td>25%</td>
+              <td>Three faults (drive or node). If one rack fails, the remaining can sustain one fault of drive or node.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Diagrams Toggle Button -->
+    <div style="text-align: center; margin: 30px 0;">
+      <button id="diagramsToggleBtn" class="btn btn-secondary btn-lg">
+        <i class="bi bi-diagram-3"></i> Show Topology Diagrams
+      </button>
+    </div>
   </div>
   
+  <!-- Image Modal for Enlarged View -->
+  <div id="imageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="position: relative; max-width: 90%; max-height: 90%;">
+      <img id="modalImage" src="" alt="Enlarged Diagram" style="width: 100%; height: auto; border-radius: 8px;">
+      <button onclick="document.getElementById('imageModal').style.display='none'" style="position: absolute; top: -40px; right: 0; background: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
   
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
     import { sizeCluster } from './js/sizingEngine.js';
     import { analyzeAllRackAwareConfigs, createRackAwareClusterSpec } from './js/rackAwareCluster.js';
+    import { cpuList as cpuList16G } from './js/cpuData.js';
+    import { cpuList as cpuList17G } from './js/17GcpuData.js';
+    import { getValidMemoryOptions, chassisDiskLimits } from './js/hardwareConfig.js';
 
     // DOM Elements
     const sizingMethodRadios = document.querySelectorAll('input[name="sizingMethod"]');
@@ -362,7 +456,7 @@
     const cpuModelInput = document.getElementById('cpuModel');
     const disksPerNodeInput = document.getElementById('disksPerNode');
     const diskSizeTiBInput = document.getElementById('diskSizeTiB');
-    const dimmSizeInput = document.getElementById('dimmSize');
+    const memoryPerNodeInput = document.getElementById('memoryPerNode');
     
     // Automatic mode chassis
     const chassisModelInput = document.getElementById('chassisModel');
@@ -392,6 +486,120 @@
         }
       });
     });
+
+    // Populate CPU dropdown based on chassis model and set defaults
+    function populateCpuDropdown() {
+      const chassisModel = manualChassisModelInput.value;
+      const cpuList = (chassisModel === "AX 670" || chassisModel === "AX 770") ? cpuList17G : cpuList16G;
+      
+      // Clear existing options
+      cpuModelInput.innerHTML = '';
+      
+      // Add all CPUs, grouped by core count
+      cpuList.forEach(cpu => {
+        const option = document.createElement('option');
+        option.value = cpu.model;
+        option.textContent = `${cpu.model} (${cpu.cores}-core, ${cpu.base_clock_GHz} GHz)`;
+        cpuModelInput.appendChild(option);
+      });
+      
+      // Find and select 16-core CPU as default
+      const sixteenCoreOption = Array.from(cpuModelInput.options).find(
+        opt => opt.textContent.includes('(16-core')
+      );
+      if (sixteenCoreOption) {
+        cpuModelInput.value = sixteenCoreOption.value;
+      }
+      
+      // Update disk limits based on chassis model
+      updateDiskLimits(chassisModel);
+    }
+    
+    // Update disk input max value based on chassis model
+    function updateDiskLimits(chassisModel) {
+      const [minDisks, maxDisks] = chassisDiskLimits[chassisModel] || [2, 24];
+      disksPerNodeInput.min = minDisks;
+      disksPerNodeInput.max = maxDisks;
+      
+      // If current value exceeds max, adjust it
+      if (parseInt(disksPerNodeInput.value) > maxDisks) {
+        disksPerNodeInput.value = maxDisks;
+      }
+    }
+    
+    // Event listener for chassis model changes
+    manualChassisModelInput.addEventListener('change', populateCpuDropdown);
+    
+    // Add slider input handling for disks per node
+    const disksPerNodeValue = document.getElementById('disksPerNodeValue');
+    disksPerNodeInput.addEventListener('input', () => {
+      disksPerNodeValue.textContent = disksPerNodeInput.value;
+    });
+    
+    // Diagrams toggle button
+    const diagramsToggleBtn = document.getElementById('diagramsToggleBtn');
+    const diagramsSection = document.getElementById('diagramsSection');
+    const imageModal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    
+    diagramsToggleBtn.addEventListener('click', () => {
+      if (diagramsSection.style.display === 'none') {
+        diagramsSection.style.display = 'block';
+        diagramsToggleBtn.innerHTML = '<i class="bi bi-diagram-3"></i> Hide Topology Diagrams';
+      } else {
+        diagramsSection.style.display = 'none';
+        diagramsToggleBtn.innerHTML = '<i class="bi bi-diagram-3"></i> Show Topology Diagrams';
+      }
+    });
+    
+    // Make diagram images clickable to enlarge
+    const diagramImages = document.querySelectorAll('[id^="diagram-"]');
+    diagramImages.forEach(img => {
+      img.style.cursor = 'pointer';
+      img.addEventListener('click', (e) => {
+        modalImage.src = e.target.src;
+        imageModal.style.display = 'flex';
+      });
+    });
+    
+    // Close modal when clicking outside the image
+    imageModal.addEventListener('click', (e) => {
+      if (e.target === imageModal) {
+        imageModal.style.display = 'none';
+      }
+    });
+    
+    // Populate CPU dropdown on page load
+    populateCpuDropdown();
+
+    // Populate memory per node dropdown
+    function populateMemoryDropdown() {
+      const memoryOptions = getValidMemoryOptions();
+      
+      // Clear existing options
+      memoryPerNodeInput.innerHTML = '';
+      
+      // Add all valid memory configurations
+      memoryOptions.forEach(option => {
+        const optElement = document.createElement('option');
+        optElement.value = option.totalGB;
+        optElement.textContent = `${option.totalGB} GB (${option.dimmCount} × ${option.dimmSize}GB)`;
+        memoryPerNodeInput.appendChild(optElement);
+      });
+      
+      // Select 512 GB as default if available
+      const fiveHundredTwelveOption = Array.from(memoryPerNodeInput.options).find(
+        opt => opt.value === '512'
+      );
+      if (fiveHundredTwelveOption) {
+        memoryPerNodeInput.value = '512';
+      } else {
+        memoryPerNodeInput.selectedIndex = 0;
+      }
+    }
+    
+    // Populate memory dropdown on page load
+    populateMemoryDropdown();
 
     // Calculate Requirements
     function getRequirements() {
@@ -661,6 +869,214 @@
         console.error('Calculation error:', error);
       }
     });
+
+    // Manual Configuration Calculate Button
+    const calculateManualBtn = document.getElementById('calculateManualBtn');
+    if (calculateManualBtn) {
+      calculateManualBtn.addEventListener('click', () => {
+        clearResults();
+
+        try {
+          const cpuModelSelected = cpuModelInput.value;
+          const disksPerNode = parseInt(disksPerNodeInput.value) || 10;
+          const diskSizeTiB = parseFloat(diskSizeTiBInput.value) || 7.68;
+          const memoryPerNode = parseInt(memoryPerNodeInput.value) || 8192;
+          const chassisModel = manualChassisModelInput.value;
+
+          if (!cpuModelSelected) {
+            throw new Error('Please select a CPU model');
+          }
+
+          // Get CPU specs
+          const cpuList = (chassisModel === "AX 670" || chassisModel === "AX 770") ? cpuList17G : cpuList16G;
+          const selectedCpu = cpuList.find(c => c.model === cpuModelSelected);
+          
+          if (!selectedCpu) {
+            throw new Error('Invalid CPU selection');
+          }
+
+          console.log('Manual Configuration:', {
+            cpuModel: cpuModelSelected,
+            cpuCores: selectedCpu.cores,
+            cpuGHz: selectedCpu.base_clock_GHz,
+            disksPerNode,
+            diskSizeTiB,
+            memoryPerNode,
+            chassisModel
+          });
+
+          // Calculate configs based on manual selection
+          const rackAwareConfigs = ['1+1', '2+2', '3+3', '4+4'];
+          const results = [];
+
+          for (const configKey of rackAwareConfigs) {
+            try {
+              const nodeMap = {
+                '1+1': 2,
+                '2+2': 4,
+                '3+3': 6,
+                '4+4': 8
+              };
+              const totalNodes = nodeMap[configKey];
+
+              // Calculate totals for this config
+              // Each node has 2 CPU sockets
+              const totalCores = selectedCpu.cores * 2 * totalNodes;
+              const totalMemory = memoryPerNode * totalNodes;
+              const diskSizeGB = diskSizeTiB * 1024;
+              const totalUsableStorage = (disksPerNode * diskSizeGB * totalNodes) / 1024; // TiB
+
+              // Determine resiliency
+              const resiliencyFactor = configKey === '1+1' ? 2 : 4;
+              const usableTiB = totalUsableStorage / resiliencyFactor;
+              
+              // Account for overhead: subtract 4 cores and 4% memory per cluster
+              const usableCores = totalCores - 4;
+              const usableMemory = totalMemory * 0.96; // 4% overhead
+              
+              // For fault tolerance, only half the resources are usable (1 rack fails, use the other)
+              const effectiveCores = usableCores / 2;
+              const effectiveMemory = usableMemory / 2;
+              
+              // Calculate utilization (for reference)
+              const coreUtilization = '100';
+              const memoryUtilization = '100';
+              const storageUtilization = '100';
+
+              results.push({
+                configName: configKey,
+                configKey: configKey,
+                fits: true,
+                cpuModel: selectedCpu.model,
+                cpuCoresPerNode: selectedCpu.cores,
+                cpuGHzPerNode: selectedCpu.base_clock_GHz,
+                memoryGBPerNode: memoryPerNode,
+                disksPerNode: disksPerNode,
+                diskSizeTiB: diskSizeTiB,
+                totalNodes: totalNodes,
+                totalCores: totalCores,
+                totalMemory: totalMemory,
+                effectiveCores: effectiveCores,
+                effectiveMemory: effectiveMemory,
+                totalUsableStorage: usableTiB,
+                coreUtilization,
+                memoryUtilization,
+                storageUtilization,
+                resiliencyFactor
+              });
+
+              console.log(`✓ ${configKey} calculated:`, results[results.length - 1]);
+
+            } catch (err) {
+              console.warn(`❌ ${configKey} calculation failed: ${err.message}`);
+              results.push({
+                configName: configKey,
+                configKey: configKey,
+                fits: false,
+                reason: err.message
+              });
+            }
+          }
+
+          successMessage.innerHTML = `✓ Manual configuration calculated for all 4 rack-aware topologies`;
+          successMessage.style.display = 'block';
+
+          // Display all configurations
+          results.forEach(config => {
+            const card = document.createElement('div');
+            card.className = `config-card ${config.fits ? 'fits' : 'does-not-fit'}`;
+
+            const badge = document.createElement('span');
+            badge.className = `fits-badge ${config.fits ? 'yes' : 'no'}`;
+            badge.textContent = config.fits ? '✓ MANUAL' : '✗ ERROR';
+
+            const title = document.createElement('div');
+            title.className = 'config-title';
+            title.textContent = config.configName;
+
+            const content = document.createElement('div');
+
+            if (!config.fits) {
+              const reason = document.createElement('div');
+              reason.innerHTML = `<div style="color: #f48771; padding: 10px; background: #fef2f2; border-radius: 4px;">
+                <strong>Error:</strong> ${config.reason}
+              </div>`;
+              content.appendChild(reason);
+            } else {
+              const configSummary = document.createElement('div');
+              configSummary.innerHTML = `
+                <div style="background: #f0f4f8; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-size: 12px;">
+                  <div><strong>Chassis:</strong> ${chassisModel}</div>
+                  <div><strong>CPU:</strong> ${config.cpuModel} (${config.cpuCoresPerNode} cores @ ${config.cpuGHzPerNode} GHz)</div>
+                  <div><strong>Memory:</strong> ${config.memoryGBPerNode} GB per node</div>
+                  <div><strong>Storage:</strong> ${config.disksPerNode} drives × ${config.diskSizeTiB} TiB each</div>
+                </div>
+              `;
+
+              const computeSection = document.createElement('div');
+              computeSection.innerHTML = `
+                <div style="margin-bottom: 10px;">
+                  <strong style="color: #000;">Compute Resources</strong>
+                  <div class="resource-item">
+                    <span>Effective Cores</span>
+                    <span><strong>${Math.floor(config.effectiveCores)}</strong></span>
+                  </div>
+                  <div class="resource-item">
+                    <span>Effective Memory</span>
+                    <span><strong>${Math.floor(config.effectiveMemory).toLocaleString()} GB</strong></span>
+                  </div>
+                  <div class="resource-item">
+                    <span>Total Nodes</span>
+                    <span><strong>${config.totalNodes}</strong></span>
+                  </div>
+                </div>
+              `;
+
+              const storageSection = document.createElement('div');
+              storageSection.innerHTML = `
+                <div style="margin-bottom: 10px;">
+                  <strong style="color: #000;">Storage</strong>
+                  <div class="resource-item">
+                    <span>Usable Storage</span>
+                    <span><strong>${config.totalUsableStorage.toFixed(2)} TiB</strong></span>
+                  </div>
+                  <div class="resource-item">
+                    <span>Resiliency</span>
+                    <span><strong>${config.resiliencyFactor}-way Mirror</strong></span>
+                  </div>
+                </div>
+              `;
+
+              const faultSection = document.createElement('div');
+              faultSection.innerHTML = `
+                <div>
+                  <strong style="color: #000;">Fault Tolerance</strong>
+                  <div style="font-size: 12px; color: #666; margin-top: 8px;">
+                    ${config.configKey === '1+1' ? '1 rack + 1 backup node' : config.configKey === '2+2' ? '2 nodes per rack, 1 backup pair' : config.configKey === '3+3' ? '3 nodes per rack, 1 backup trio' : '4 nodes per rack, 1 backup quad'}
+                  </div>
+                </div>
+              `;
+
+              content.appendChild(configSummary);
+              content.appendChild(computeSection);
+              content.appendChild(storageSection);
+              content.appendChild(faultSection);
+            }
+
+            card.appendChild(badge);
+            card.appendChild(title);
+            card.appendChild(content);
+            resultsGrid.appendChild(card);
+          });
+
+        } catch (error) {
+          clearResults();
+          errorMessage.textContent = `❌ Error: ${error.message}`;
+          errorMessage.style.display = 'block';
+          console.error('Manual calculation error:', error);
+        }
+      });
+    }
 
     // Allow Enter key to calculate
     document.addEventListener('keypress', (e) => {

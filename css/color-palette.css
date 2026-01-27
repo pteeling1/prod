@@ -1,0 +1,33 @@
+/* Color Palette for AX Calculator */
+
+:root {
+  /* Primary Colors */
+  --color-success: #6a9955;        /* Green - for "FITS" and success states */
+  --color-error: #f48771;          /* Red - for "DOES NOT FIT" and errors */
+  --color-primary: #000;           /* Black - primary text and headings */
+  --color-secondary: #666;         /* Gray - secondary/muted text */
+  
+  /* Background Colors */
+  --bg-light: #f8f9fa;             /* Light background */
+  --bg-card: #f0f4f8;              /* Card background */
+  --bg-success-light: #f0fdf4;     /* Light green background */
+  --bg-error-light: #fef2f2;       /* Light red background */
+  --bg-white: #ffffff;             /* White background */
+  
+  /* Border Colors */
+  --border-light: #eee;            /* Light border */
+  --border-dark: #ccc;             /* Darker border */
+  
+  /* Accent Colors */
+  --accent-blue: #0078d4;          /* Microsoft blue (alternative) */
+  --accent-teal: #107c10;          /* Microsoft green (alternative) */
+}
+
+/* Usage guide:
+   - Success states: background-color: var(--color-success)
+   - Error states: background-color: var(--color-error)
+   - Primary text: color: var(--color-primary)
+   - Card backgrounds: background: var(--bg-card)
+   - Success backgrounds: background: var(--bg-success-light)
+   - Error backgrounds: background: var(--bg-error-light)
+*/

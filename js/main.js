@@ -655,6 +655,15 @@ renderInstanceSummaryBlock({
       <li><strong> Storage Resiliency:</strong> ${result.storageResiliency}</li>
       <li><strong>Usable Storage:</strong> ${parseFloat(result.usableTiB).toFixed(2).toLocaleString()} TiB</li>
       </ul>
+      ${result.disconnectedOps && result.disconnectedOps.enabled ? `
+      <div class="mt-3 pt-3 border-top">
+        <h6 class="text-primary"><i class="bi bi-cloud-check"></i> Disconnected Operations Overhead</h6>
+        <ul class="list-unstyled small text-muted mb-0">
+          <li><strong>Workload Cluster:</strong> ${result.disconnectedOps.workloadCluster.cores} cores, ${result.disconnectedOps.workloadCluster.ram} GB RAM, ${result.disconnectedOps.workloadCluster.storage.toFixed(2)} TB storage</li>
+          <li><strong>Management Cluster:</strong> ${result.disconnectedOps.managementCluster.cores} cores, ${result.disconnectedOps.managementCluster.ram} GB RAM, ${result.disconnectedOps.managementCluster.storage} TB storage (${result.disconnectedOps.managementCluster.nodes} nodes)</li>
+        </ul>
+      </div>
+      ` : ''}
     `;
 
     setTimeout(() => {

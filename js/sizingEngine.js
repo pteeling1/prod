@@ -546,6 +546,48 @@ function applyGrowthFactor(value, growthPercent) {
   return value * (1 + growthPercent / 100);
 }
 
+// 🔌 Disconnected Operations Overhead
+// Management cluster: 3 nodes × 96GB RAM, 24 cores per node
+function applyDisconnectedOpsOverhead(payload, disconnectedOpsEnabled) {
+  if (!disconnectedOpsEnabled) {
+    return payload;
+  }
+
+  const MGMT_NODES = 3;
+  const MGMT_RAM_PER_NODE = 96; // GB
+  const MGMT_CORES_PER_NODE = 24;
+  const MGMT_STORAGE_PER_NODE = 2; // TB (2TB SSD/NVME per node)
+
+  const mgmtCores = MGMT_NODES * MGMT_CORES_PER_NODE; // 72 cores
+  const mgmtRAM = MGMT_NODES * MGMT_RAM_PER_NODE; // 288 GB
+  const mgmtStorage = MGMT_NODES * MGMT_STORAGE_PER_NODE; // 6 TB
+
+  console.log(`🔌 Disconnected Operations: Adding management cluster overhead`);
+  console.log(`   Workload cluster: ${payload.totalCPU} cores, ${payload.totalRAM} GB RAM`);
+  console.log(`   Management cluster: ${mgmtCores} cores, ${mgmtRAM} GB RAM, ${mgmtStorage} TB storage`);
+
+  return {
+    ...payload,
+    totalCPU: payload.totalCPU + mgmtCores,
+    totalRAM: payload.totalRAM + mgmtRAM,
+    totalStorage: payload.totalStorage + mgmtStorage,
+    disconnectedOps: {
+      enabled: true,
+      workloadCluster: {
+        cores: payload.totalCPU,
+        ram: payload.totalRAM,
+        storage: payload.totalStorage
+      },
+      managementCluster: {
+        cores: mgmtCores,
+        ram: mgmtRAM,
+        storage: mgmtStorage,
+        nodes: MGMT_NODES
+      }
+    }
+  };
+}
+
 function getSizingPayloadFromHTML() {
  const activePill = document.querySelector("#sizingModePills .nav-link.active");
 const mode = activePill?.getAttribute("data-mode") || "vm";
@@ -555,6 +597,9 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
     // Determine chassis model from main UI selection only
     const nodeTypeMainRadio = document.querySelector('input[name="nodeType"]:checked');
   const chassisModel = nodeTypeMainRadio?.value || "AX 770";
+
+  // Check for disconnected operations
+  const disconnectedOpsEnabled = document.getElementById("disconnectedOpsCheckbox")?.checked || false;
 
   if (mode === "vm") {
     // === Existing VM mode ===
@@ -566,7 +611,7 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
 
     const vmSizing = calculateVmSizing(vmCount, vCPU, vcpuRatio, ramPerVM, storagePerVM);
 
-    return {
+    let payload = {
       totalCPU: Math.ceil(applyGrowthFactor(vmSizing.totalCores, growthPctRaw)),
       totalRAM: Math.ceil(applyGrowthFactor(vmSizing.totalRamGB, growthPctRaw)),
       totalStorage: applyGrowthFactor(vmSizing.totalStorageGB, growthPctRaw) / 1024,
@@ -574,6 +619,8 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
       haLevel,
       chassisModel
     };
+
+    return applyDisconnectedOpsOverhead(payload, disconnectedOpsEnabled);
 
   } else if (mode === "workload") {
   // === New Workload mode ===
@@ -644,7 +691,7 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
 
   });
 
-  return {
+  let payload = {
     totalCPU: Math.ceil(applyGrowthFactor(totalCores, growthPctRaw)),
     totalRAM: Math.ceil(applyGrowthFactor(totalRAM, growthPctRaw)),
     totalStorage: applyGrowthFactor(totalStorage, growthPctRaw) / 1024, // GB→TB
@@ -654,6 +701,8 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
     raw: { totalCores, totalRAM, totalStorage },
     workloads: workloadSummaries
   };
+
+  return applyDisconnectedOpsOverhead(payload, disconnectedOpsEnabled);
 } else {
   // === Existing "other" mode ===
   const cpuUnit = document.getElementById("cpuUnit")?.value || "cores";
@@ -670,7 +719,7 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
   const totalStorage = parseFloat(document.getElementById("totalStorage")?.value || "0");
   const switchMode = document.querySelector('input[name="switchMode"]:checked')?.value || "separate";
 
-  return {
+  let payload = {
     totalCPU: Math.ceil(applyGrowthFactor(totalCPU, growthPctRaw)),
     totalGHz: totalGHz, // optional: include if relevant
     totalRAM: Math.ceil(applyGrowthFactor(totalRAM, growthPctRaw)),
@@ -681,6 +730,8 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
     raw: { totalCPU, totalRAM, totalStorage },
     workloads: [] // empty array for consistency
   };
+
+  return applyDisconnectedOpsOverhead(payload, disconnectedOpsEnabled);
 }
 }
 

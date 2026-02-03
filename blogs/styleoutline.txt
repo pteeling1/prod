@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teeling Cloud Courant - Germania One Title Case</title>
+    <link href="https://fonts.googleapis.com/css2?family=Germania+One&family=Inter:wght@400;500;600;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafaf8;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 3px solid #1a2332;
+            padding: 40px 0 20px;
+            margin-bottom: 30px;
+        }
+
+        .masthead {
+            font-family: 'Germania One', cursive;
+            font-size: 72px;
+            color: #1a2332;
+            text-align: center;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-weight: 400;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        .tagline {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .publication-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #6b7280;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .date {
+            font-weight: 600;
+        }
+
+        .issue {
+            font-style: italic;
+        }
+
+        /* Main Content */
+        .main-content {
+            background: #ffffff;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            font-family: 'Merriweather', serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: #1a2332;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1a2332;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .article {
+            margin-bottom: 30px;
+        }
+
+        .article-headline {
+            font-family: 'Merriweather', serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a2332;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .article-byline {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        .article-text {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #374151;
+            text-align: justify;
+        }
+
+        .article-text::first-letter {
+            font-size: 48px;
+            font-weight: 700;
+            float: left;
+            line-height: 40px;
+            padding-right: 8px;
+            margin-top: 3px;
+            font-family: 'Merriweather', serif;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* Special boxes */
+        .sidebar-box {
+            background: #f9fafb;
+            border: 2px solid #1a2332;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-box-title {
+            font-family: 'Merriweather', serif;
+            font-size: 16px;
+            font-weight: 900;
+            color: #1a2332;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-box-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #374151;
+        }
+
+        .sidebar-box-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .sidebar-box-content li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .sidebar-box-content li:last-child {
+            border-bottom: none;
+        }
+
+        /* Quote box */
+        .quote-box {
+            border-left: 4px solid #1a2332;
+            padding-left: 20px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #1a2332;
+        }
+
+        .quote-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .quote-attribution {
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        /* Comparison section */
+        .comparison-section {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .comparison-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a2332;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .comparison-item {
+            background: white;
+            padding: 25px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .comparison-label {
+            font-size: 13px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .comparison-masthead {
+            font-family: 'Germania One', cursive;
+            font-size: 48px;
+            color: #1a2332;
+            text-align: center;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        .comparison-notes {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .masthead {
+                font-size: 48px;
+            }
+
+            .columns {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-masthead {
+                font-size: 36px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .publication-info {
+                flex-direction: column;
+                gap: 8px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Comparison Section -->
+        <div class="comparison-section">
+            <h2 class="comparison-title">Title Case vs All Caps Comparison</h2>
+            <div class="comparison-grid">
+                <div class="comparison-item">
+                    <div class="comparison-label">Title Case (Recommended)</div>
+                    <div class="comparison-masthead">Teeling Cloud Courant</div>
+                    <div class="comparison-notes">
+                        <strong>Pros:</strong> More readable, elegant, approachable while maintaining gothic character. Better balance of authority and accessibility.
+                    </div>
+                </div>
+                <div class="comparison-item">
+                    <div class="comparison-label">All Caps (Traditional)</div>
+                    <div class="comparison-masthead">TEELING CLOUD COURANT</div>
+                    <div class="comparison-notes">
+                        <strong>Pros:</strong> Maximum authority, traditional newspaper feel, more commanding presence. Classic masthead style.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="container">
+            <h1 class="masthead">Teeling Cloud Courant</h1>
+            <p class="tagline">making hybrid cloud a little less cloudy</p>
+            <div class="publication-info">
+                <span class="date">Tuesday, February 3, 2026</span>
+                <span class="issue">Volume 1, Issue 12</span>
+                <span>Amsterdam • Dublin • Seattle</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="section-header">Technology</div>
+            
+            <div class="columns">
+                <div>
+                    <article class="article">
+                        <h2 class="article-headline">Kubernetes Adoption Reaches New Heights in Enterprise</h2>
+                        <p class="article-byline">By Sarah van der Berg • Cloud Infrastructure</p>
+                        <p class="article-text">
+                            Organizations across Europe are accelerating their container orchestration strategies, with Kubernetes deployments growing by 47% year-over-year. The shift reflects a broader trend toward cloud-native architectures that promise greater flexibility and cost efficiency. Industry analysts point to improved tooling and widespread vendor support as key factors driving adoption. "We're seeing companies move from experimental pilots to production-grade deployments," notes Klaus Hoffmann, principal analyst at CloudWatch Research.
+                        </p>
+                    </article>
+
+                    <article class="article">
+                        <h2 class="article-headline">Multi-Cloud Strategies Gain Momentum</h2>
+                        <p class="article-byline">By James O'Sullivan • Strategy</p>
+                        <p class="article-text">
+                            Enterprise IT leaders are increasingly embracing multi-cloud approaches to avoid vendor lock-in and optimize workload placement. Recent surveys indicate that 73% of large enterprises now operate across two or more cloud providers. The strategy requires sophisticated governance frameworks and careful attention to data sovereignty requirements, particularly under evolving European regulations.
+                        </p>
+                    </article>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">Market Watch</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li><strong>AWS</strong> — Announces new European region in Copenhagen</li>
+                                <li><strong>Azure</strong> — Expands sustainability commitments with carbon-aware workload scheduling</li>
+                                <li><strong>GCP</strong> — Introduces enhanced Kubernetes automation features</li>
+                                <li><strong>Oracle Cloud</strong> — Partners with major Dutch financial institutions</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="quote-box">
+                        <p class="quote-text">"The hybrid cloud is no longer a compromise—it's the optimal architecture for modern business."</p>
+                        <p class="quote-attribution">— Dr. Emma Petersen, CTO, NordBank</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">Analysis</div>
+
+            <div class="columns">
+                <article class="article full-width">
+                    <h2 class="article-headline">The True Cost of Cloud: Beyond the Invoice</h2>
+                    <p class="article-byline">By Marcus Teeling • Chief Editor</p>
+                    <p class="article-text">
+                        When organizations evaluate cloud economics, the conversation often begins and ends with infrastructure costs. Yet this narrow focus obscures a more complex reality. The true expense of cloud operations encompasses licensing complexity, data egress fees, training investments, and the often-underestimated burden of cloud management overhead. Recent data from the Cloud Cost Alliance suggests that visible infrastructure costs represent only 60% of total cloud expenditure. The remaining 40% hides in operational complexity, redundant tooling, and inefficient resource allocation. Forward-thinking organizations are addressing this through FinOps practices that bring financial accountability to engineering decisions. "We've shifted from asking 'what does this cost' to 'what value does this deliver per euro spent,'" explains Anna Bakker, VP of Engineering at a major European retailer. The distinction matters. As cloud adoption matures, competitive advantage increasingly flows to organizations that master not just deployment, but optimization.
+                    </p>
+                </article>
+            </div>
+
+            <div class="columns">
+                <div>
+                    <article class="article">
+                        <h2 class="article-headline">Security Teams Adapt to Cloud-Native Threats</h2>
+                        <p class="article-byline">By Pieter Jansen • Security</p>
+                        <p class="article-text">
+                            The rapid evolution of cloud infrastructure has forced security professionals to rethink traditional defense strategies. Container security, API gateway protection, and identity management now form the cornerstone of modern security architectures. "Perimeter-based security is effectively obsolete in cloud-native environments," observes Linda Schmidt, CISO at a Fortune 500 manufacturer.
+                        </p>
+                    </article>
+                </div>
+
+                <div>
+                    <article class="article">
+                        <h2 class="article-headline">Green Cloud Computing Initiatives Expand</h2>
+                        <p class="article-byline">By Sophie Laurent • Sustainability</p>
+                        <p class="article-text">
+                            Major cloud providers are accelerating investments in renewable energy and carbon-neutral data centers. The initiatives respond to growing pressure from both regulators and customers for environmentally responsible computing. Industry experts project that by 2028, over 80% of European cloud capacity will be powered by renewable energy sources.
+                        </p>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

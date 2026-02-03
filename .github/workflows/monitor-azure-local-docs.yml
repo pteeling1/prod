@@ -1,0 +1,192 @@
+name: Monitor Azure Local Docs & Generate Blog Post
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  monitor-and-generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone MicrosoftDocs/azure-docs
+        id: clone-docs
+        run: |
+          mkdir -p /tmp/azure-docs
+          cd /tmp/azure-docs
+          git clone --depth=100 https://github.com/MicrosoftDocs/azure-docs.git .
+
+      - name: Get latest commits to Azure Local docs
+        id: get-commits
+        run: |
+          cd /tmp/azure-docs
+          # Get commits from the last 7 days to articles/azure-local/
+          COMMITS=$(git log --since="7 days ago" --pretty=format:"%h|%s|%ai" -- "articles/azure-local/" 2>/dev/null || echo "")
+          
+          if [ -z "$COMMITS" ]; then
+            echo "No recent changes found"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "commits<<EOF" >> $GITHUB_OUTPUT
+            echo "$COMMITS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch changed files
+        if: steps.get-commits.outputs.has_changes == 'true'
+        id: changed-files
+        run: |
+          cd /tmp/azure-docs
+          FILES=$(git log --name-only --pretty=format: --since="7 days ago" -- "articles/azure-local/" | grep -v '^$' | sort -u)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Also capture file contents for Copilot context
+          echo "file_contents<<EOF" >> $GITHUB_OUTPUT
+          for file in $FILES; do
+            if [ -f "$file" ]; then
+              echo "--- File: $file ---" >> $GITHUB_OUTPUT
+              head -n 200 "$file" >> $GITHUB_OUTPUT
+              echo "" >> $GITHUB_OUTPUT
+            fi
+          done
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Generate blog post with Copilot
+        if: steps.get-commits.outputs.has_changes == 'true'
+        id: generate-post
+        uses: actions/github-script@v7
+        env:
+          COPILOT_TOKEN: ${{ secrets.COPILOT_API_TOKEN }}
+          COMMITS: ${{ steps.get-commits.outputs.commits }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+          FILE_CONTENTS: ${{ steps.changed-files.outputs.file_contents }}
+        with:
+          script: |
+            const https = require('https');
+            
+            const prompt = `You are a technical blog writer for Teeling Cloud Courant, a publication about hybrid cloud and Azure Local.
+            
+            Recent changes to Azure Local documentation (from MicrosoftDocs/azure-docs):
+            
+            Commits:
+            ${{ env.COMMITS }}
+            
+            Changed files and preview content:
+            ${{ env.FILE_CONTENTS }}
+            
+            Based on these Azure documentation updates, create a new blog post. Use this as your style guide:
+            
+            ${require('fs').readFileSync('./blogs-style-guide.md', 'utf8')}
+            
+            Requirements:
+            - Write in the same tone and format as existing Teeling Cloud Courant posts
+            - Focus on the architectural and operational implications for Azure Local deployments
+            - Include specific details from the updated documentation
+            - Provide actionable guidance where relevant
+            - Assume the audience is hybrid cloud professionals and Azure Local operators
+            - Keep a professional but conversational tone
+            
+            Format your response as valid JSON with this structure:
+            {
+              "title": "Blog title here",
+              "subtitle": "Subtitle or key takeaway",
+              "content": "Full blog content in HTML (wrap multiple paragraphs in <p class=\\"article-text\\"> tags, use <article-list> for bullet points)"
+            }`;
+            
+            // Call GitHub Copilot API
+            return new Promise((resolve, reject) => {
+              const postData = JSON.stringify({
+                model: 'gpt-4',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'You are an expert technical writer specializing in Azure infrastructure and hybrid cloud architecture.'
+                  },
+                  {
+                    role: 'user',
+                    content: prompt
+                  }
+                ],
+                temperature: 0.7,
+                max_tokens: 2000
+              });
+              
+              const options = {
+                hostname: 'api.github.com',
+                path: '/repos/github/copilot-api/chat',
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${{ env.COPILOT_TOKEN }}`,
+                  'Content-Type': 'application/json',
+                  'Content-Length': postData.length,
+                  'Accept': 'application/vnd.github.v3+json'
+                }
+              };
+              
+              const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', (chunk) => { data += chunk; });
+                res.on('end', () => {
+                  try {
+                    resolve(JSON.parse(data));
+                  } catch (e) {
+                    reject(e);
+                  }
+                });
+              });
+              
+              req.on('error', reject);
+              req.write(postData);
+              req.end();
+            });
+
+      - name: Update blogs-data.json
+        if: steps.generate-post.outputs.result != ''
+        run: |
+          const fs = require('fs');
+          const post = JSON.parse('${{ steps.generate-post.outputs.result }}');
+          const date = new Date().toISOString().split('T')[0];
+          
+          let blogsData = { auto_posts: [] };
+          if (fs.existsSync('blogs-data.json')) {
+            blogsData = JSON.parse(fs.readFileSync('blogs-data.json', 'utf8'));
+          }
+          
+          const newPost = {
+            id: `auto-${date}`,
+            title: post.title,
+            subtitle: post.subtitle,
+            date: date,
+            content: post.content,
+            source: 'Azure Local Docs Monitor',
+            auto_generated: true
+          };
+          
+          blogsData.auto_posts.unshift(newPost);
+          // Keep only last 12 auto posts
+          blogsData.auto_posts = blogsData.auto_posts.slice(0, 12);
+          
+          fs.writeFileSync('blogs-data.json', JSON.stringify(blogsData, null, 2));
+        shell: node {0}
+
+      - name: Commit and push changes
+        if: steps.generate-post.outputs.result != ''
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add blogs-data.json
+          git commit -m "Auto-generated blog post: Azure Local docs update" || echo "No changes to commit"
+          git push

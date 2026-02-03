@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teeling Cloud Courant - Blogs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Germania+One&family=Inter:wght@400;500;600;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafaf8;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 3px solid #1a2332;
+            padding: 40px 0 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-back {
+            margin-bottom: 15px;
+        }
+
+        .nav-back a {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .nav-back a:hover {
+            color: #1a2332;
+        }
+
+        .masthead {
+            font-family: 'Germania One', cursive;
+            font-size: 72px;
+            color: #1a2332;
+            text-align: center;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-weight: 400;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        .tagline {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .publication-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #6b7280;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .date {
+            font-weight: 600;
+        }
+
+        .issue {
+            font-style: italic;
+        }
+
+        /* Blog Index */
+        .blog-index {
+            background: #ffffff;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            font-family: 'Merriweather', serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: #1a2332;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1a2332;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .blog-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .blog-card {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            padding: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .blog-card:hover {
+            border-color: #1a2332;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .blog-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .blog-number {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .blog-date {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .blog-title {
+            font-family: 'Merriweather', serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a2332;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .blog-excerpt {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .read-more {
+            font-size: 13px;
+            color: #1a2332;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: gap 0.3s;
+        }
+
+        .blog-card:hover .read-more {
+            gap: 10px;
+        }
+
+        /* Main Content */
+        .main-content {
+            background: #ffffff;
+            padding: 40px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .main-content.active {
+            display: block;
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .article-title {
+            font-family: 'Merriweather', serif;
+            font-size: 32px;
+            font-weight: 900;
+            color: #1a2332;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+
+        .article-subtitle {
+            font-size: 16px;
+            color: #6b7280;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        .article-byline {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 30px;
+            font-style: italic;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .article {
+            margin-bottom: 30px;
+        }
+
+        .article-headline {
+            font-family: 'Merriweather', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a2332;
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .article-text {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #374151;
+            text-align: justify;
+        }
+
+        .article-list {
+            list-style: none;
+            padding: 20px 0;
+            margin: 20px 0 20px 0;
+        }
+
+        .article-list li {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #374151;
+            margin-bottom: 12px;
+            padding-left: 28px;
+            position: relative;
+        }
+
+        .article-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #1a2332;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .sidebar-box {
+            background: #f9fafb;
+            border: 2px solid #1a2332;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-box-title {
+            font-family: 'Merriweather', serif;
+            font-size: 14px;
+            font-weight: 900;
+            color: #1a2332;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-box-content {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #374151;
+        }
+
+        .sidebar-box-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .sidebar-box-content li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .sidebar-box-content li:last-child {
+            border-bottom: none;
+        }
+
+        .quote-box {
+            border-left: 4px solid #1a2332;
+            padding-left: 20px;
+            margin: 30px 0;
+            font-style: italic;
+            color: #1a2332;
+        }
+
+        .quote-text {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .quote-attribution {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        /* Back button */
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #1a2332;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 30px;
+            transition: gap 0.3s;
+        }
+
+        .back-button:hover {
+            gap: 12px;
+        }
+
+        /* Publication description */
+        .publication-description {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #374151;
+            margin-bottom: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .masthead {
+                font-size: 48px;
+            }
+
+            .blog-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .columns {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .article-title {
+                font-size: 24px;
+            }
+
+            .publication-info {
+                flex-direction: column;
+                gap: 8px;
+                text-align: center;
+            }
+
+            .blog-header-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav-back">
+                <a href="index.html"><i class="bi bi-arrow-left"></i> Back to Calculator</a>
+            </div>
+            <h1 class="masthead">Teeling Cloud Courant</h1>
+            <p class="tagline">making hybrid cloud a little less cloudy</p>
+            <div class="publication-info">
+                <span class="date" id="currentDate">Tuesday, February 3, 2026</span>
+                <span class="issue">Volume 1, Issue 1</span>
+                <span>St.Louis, MO</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Publication Description -->
+        <div class="blog-index" style="margin-bottom: 50px;">
+            <p class="publication-description">
+                Teeling Cloud Courant is a running commentary on hybrid cloud reality — especially Microsoft Azure Local, Azure Arc, and the connective tissue between on‑premises and cloud. I focus on these topics because they sit at the intersection of architecture, operations, and real‑world constraints — the place where Microsoft's intentions meet what customers can actually deploy. While much of the content centers on Microsoft's hybrid ecosystem, TCC isn't limited to a single vendor. Hybrid cloud is bigger than any one platform, and the publication occasionally features broader perspectives and guest contributors. If you work with hybrid cloud, Azure Local, or modern datacenter design, this publication keeps you current without drowning you in noise.
+            </p>
+        </div>
+
+        <!-- Blog Index -->
+        <div class="blog-index" id="blogIndex">
+            <div class="section-header">Latest Articles</div>
+            
+            <div class="columns full-width" style="grid-template-columns: 1fr 350px; gap: 40px;">
+                <div>
+                    <!-- Article 1 -->
+                    <article class="article" style="margin-bottom: 50px; border-bottom: 2px solid #e5e7eb; padding-bottom: 40px;">
+                        <div class="blog-header-row">
+                            <div class="blog-number">Article 1 of 2</div>
+                            <div class="blog-date">Feb 3, 2026</div>
+                        </div>
+                        <h2 class="article-title">Making the Case for 100 GbE Networking with Azure Local</h2>
+                        <p class="article-subtitle">Why dense NVMe nodes change the networking conversation sooner than most designs expect</p>
+                        <p class="article-byline">By Pieter Teeling • Azure Local Architecture</p>
+                        
+                        <p class="article-text">As NVMe becomes the default choice for modern hyperconverged infrastructure, one question comes up repeatedly in both Storage Spaces Direct (S2D) and Azure Local designs: When does 100 GbE networking actually make sense?</p>
+                        
+                        <p class="article-text">For many years, 10 GbE — and later 25 GbE — was sufficient for most storage workloads. Even today, dual‑port 25 GbE designs are often considered "more than enough." But once you start building dense all‑NVMe nodes, those assumptions begin to break down.</p>
+                        
+                        <button onclick="showBlog('100gbit', event)" class="read-more" style="background: none; border: none; padding: 0; cursor: pointer; margin-top: 20px;"><span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Article <i class="bi bi-arrow-right"></i></span></button>
+                    </article>
+
+                    <!-- Article 2 -->
+                    <article class="article">
+                        <div class="blog-header-row">
+                            <div class="blog-number">Article 2 of 2</div>
+                            <div class="blog-date">Feb 3, 2026</div>
+                        </div>
+                        <h2 class="article-title">Azure Local Support Deadlines and Stretched Clusters</h2>
+                        <p class="article-subtitle">Critical deadlines for 22H2 and 23H2 environments</p>
+                        <p class="article-byline">By Pieter Teeling • Azure Local Lifecycle</p>
+                        
+                        <p class="article-text">Still on 22H2? Running a stretched cluster? Or sitting on 23H2 hoping it buys you time?</p>
+                        
+                        <p class="article-text">This is your wake‑up call — with clear facts and supported directions, not "just wait." Azure Local's 22H2 and 23H2 releases are on borrowed time. 22H2 is already out of support, and 23H2 — including stretched clusters — stops receiving security and quality updates after April 2026.</p>
+                        
+                        <button onclick="showBlog('azure-local', event)" class="read-more" style="background: none; border: none; padding: 0; cursor: pointer; margin-top: 20px;"><span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Article <i class="bi bi-arrow-right"></i></span></button>
+                    </article>
+                </div>
+
+                <!-- Sidebar -->
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">Market Watch</h3>
+                        <div class="sidebar-box-content" id="marketWatchContent">
+                            <p style="font-size: 13px; color: #6b7280;">Loading latest cloud news...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="main-content" id="blog-100gbit">
+            <a href="#" class="back-button" onclick="showBlog('index', event)"><i class="bi bi-arrow-left"></i> Back to Articles</a>
+            
+            <div class="content-header">
+                <h1 class="article-title">Making the Case for 100 GbE Networking with Azure Local and Storage Spaces Direct</h1>
+                <p class="article-subtitle">Why dense NVMe nodes change the networking conversation sooner than most designs expect</p>
+                <p class="article-byline">By Pieter Teeling • Azure Local Architecture</p>
+            </div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">As NVMe becomes the default choice for modern hyperconverged infrastructure, one question comes up repeatedly in both Storage Spaces Direct (S2D) and Azure Local designs:
+
+When does 100 GbE networking actually make sense?
+
+For many years, 10 GbE — and later 25 GbE — was sufficient for most storage workloads. Even today, dual‑port 25 GbE designs are often considered "more than enough." But once you start building dense all‑NVMe nodes, those assumptions begin to break down.
+
+This article explains why 100 GbE becomes justified earlier than expected in all‑NVMe S2D and Azure Local deployments, why roughly 12 NVMe drives per node is a practical, conservative inflection point, how the economics of 4 × 25 GbE versus 2 × 100 GbE work out in real designs, and why the same logic applies across vendors like Dell and Cisco.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Design Assumptions (Made Explicit)</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Before going further, it's important to anchor the discussion in realistic design practice:</p>
+
+                    <p class="article-text">No serious production S2D or Azure Local design uses a single storage network port. All scenarios discussed here assume:</p>
+                    
+                    <ul class="article-list">
+                        <li>At least two network ports per node</li>
+                        <li>SMB Multichannel enabled</li>
+                        <li>SMB Direct (RDMA) in use</li>
+                        <li>A baseline of 2 × 25 GbE networking for storage/compute traffic</li>
+                    </ul>
+
+                    <p class="article-text">This reflects real‑world Azure Stack HCI and Azure Local designs and avoids straw‑man comparisons like "100 GbE vs a single 10 GbE link."</p>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">What This Article Covers</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li>Why 100 GbE becomes justified earlier than expected</li>
+                                <li>Why roughly 12 NVMe drives per node is the practical inflection point</li>
+                                <li>How the economics of 4 × 25 GbE versus 2 × 100 GbE work out in real designs</li>
+                                <li>Why the same logic applies across vendors (Dell, Cisco)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">How NVMe Moves the Bottleneck to the Network</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">A single enterprise NVMe drive is capable of multiple gigabytes per second of throughput. When a node contains 12, 16, or 24 NVMe drives, the aggregate storage capability becomes enormous.
+
+In Storage Spaces Direct, all east‑west storage traffic — including mirrored writes — flows over the network using SMB 3 with RDMA. Azure Local uses the same underlying S2D mechanisms for its local storage.</p>
+
+                    <p class="article-text">As NVMe density increases, the limiting factor stops being the media and quickly becomes available network bandwidth. At that point:</p>
+                    
+                    <ul class="article-list">
+                        <li>Adding more NVMe increases peak potential</li>
+                        <li>But does not improve realized performance unless the network scales with it</li>
+                        <li>If the network doesn't keep up, you effectively pay for NVMe performance that never reaches the workload</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-header">What VMFleet Tells Us About Real‑World Limits</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">VMFleet, Microsoft's official S2D performance and validation tool, is designed to generate highly parallel I/O, stress storage, CPU, and network simultaneously, and expose architectural bottlenecks rather than idealized peaks.
+
+In all‑NVMe S2D clusters, VMFleet runs consistently show that nodes can sustain well over 5 GB/s of storage throughput, network links saturate before NVMe does, and scaling flattens once aggregate NIC bandwidth is consumed.
+
+This behavior appears even when SMB Multichannel is active and multiple NICs are available. Azure Local, running on the same S2D foundations, exhibits the same pattern when you push it with dense NVMe and realistic I/O mixes.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Dual‑Port 25 GbE: Good, But Not a 50 GbE Pipe</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">With 2 × 25 GbE, SMB Multichannel allows traffic to flow across both links concurrently. This meaningfully increases available bandwidth compared to a single port, but it's not a perfect doubling.</p>
+                    
+                    <p class="article-text">It's crucial to understand what SMB Multichannel does — and does not — provide:</p>
+                    
+                    <ul class="article-list">
+                        <li>It balances connections, not individual I/O operations</li>
+                        <li>Storage traffic includes replica writes, metadata, and control flows</li>
+                        <li>Mirror traffic competes with client I/O for the same NICs</li>
+                        <li>Utilization across ports is rarely perfectly even under sustained load</li>
+                    </ul>
+
+                    <p class="article-text">As a result, dual‑port 25 GbE does not behave like a single flat 50 GbE pipe for storage workloads.</p>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">Practical Per‑Node Reality with 2 × 25 GbE</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li><strong>Theoretical aggregate bandwidth:</strong> 6.25 GB/s</li>
+                                <li><strong>Realistic sustained throughput:</strong> 4.5–5.0 GB/s</li>
+                                <li><strong>Common VMFleet ceiling:</strong> ~5 GB/s</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <p class="article-text" style="margin-top: 20px;">That's a substantial improvement over a single link — but it's also a ceiling that dense NVMe nodes can hit surprisingly quickly.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Where NVMe Density Meets the Network Ceiling</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">Once we assume 2 × 25 GbE as the baseline, a clear pattern emerges:</p>
+                    
+                    <ul class="article-list">
+                        <li><strong>NVMe drives per node: ≤ 8</strong> — Network rarely limits performance</li>
+                        <li><strong>NVMe drives per node: ~12</strong> — Network pressure becomes visible under sustained load</li>
+                        <li><strong>NVMe drives per node: 16+</strong> — Network is consistently the bottleneck in stress scenarios</li>
+                    </ul>
+
+                    <p class="article-text">At roughly 12 NVMe drives per node, the node is often capable of driving more throughput than dual‑port 25 GbE can sustain under continuous load. Beyond that point, performance gains from additional NVMe are increasingly constrained by the network.
+
+This is the point where 100 GbE stops being "nice to have" and becomes architecturally justified.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Why 100 GbE Changes the Equation</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Moving to 100 GbE does more than increase peak bandwidth:</p>
+                    
+                    <ul class="article-list">
+                        <li>It removes the network as the primary limiter</li>
+                        <li>It improves performance consistency under contention</li>
+                        <li>It provides headroom for growth and future workloads</li>
+                        <li>It avoids costly retrofits later (re‑cabling, new switches, downtime)</li>
+                    </ul>
+
+                    <p class="article-text">With dual‑port 100 GbE:</p>
+
+                    <ul class="article-list">
+                        <li>Aggregate bandwidth is high enough that storage or CPU once again become the limiting factors</li>
+                        <li>NVMe density can scale without immediately flattening performance</li>
+                        <li>The system behaves as customers expect when they invest in NVMe: adding drives actually results in more usable performance</li>
+                    </ul>
+
+                    <p class="article-text">This is why many all‑NVMe S2D and Azure Local reference architectures move directly to 100 GbE rather than trying to "stretch" 25 GbE with additional ports.</p>
+                </div>
+
+                <div>
+                    <div class="quote-box">
+                        <p class="quote-text">"The hybrid cloud is no longer a compromise—it's the optimal architecture for modern business."</p>
+                        <p class="quote-attribution">— Core principle in modern HCI design</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">The Real Design Choice: 4 × 25 GbE vs 2 × 100 GbE</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">Once you accept that 2 × 25 GbE will not be enough for roughly 12–16 NVMe per node under sustained load, the design conversation changes:</p>
+                    
+                    <p class="article-text"><strong>You are no longer choosing between 25 GbE vs 100 GbE. You are choosing between 4 × 25 GbE and 2 × 100 GbE.</strong></p>
+                    
+                    <p class="article-text" style="margin-bottom: 8px;"><strong>Option A: 4 × 25 GbE per node</strong></p>
+                    <ul class="article-list" style="margin-top: 0; padding-top: 0;">
+                        <li>Doubles the NIC ports per server (more NICs or higher‑port adapters)</li>
+                        <li>Consumes 4 TOR ports per node</li>
+                        <li>Requires twice as many DACs/optics</li>
+                        <li>Increases cabling complexity and configuration overhead</li>
+                    </ul>
+
+                    <p class="article-text" style="margin-bottom: 8px; margin-top: 20px;"><strong>Option B: 2 × 100 GbE per node</strong></p>
+                    <ul class="article-list" style="margin-top: 0; padding-top: 0;">
+                        <li>Keeps you at 2 TOR ports per node</li>
+                        <li>Uses half the cables</li>
+                        <li>Delivers 2× the aggregate bandwidth of a 4 × 25 GbE (100 Gbit/s) design</li>
+                        <li>Simplifies operations and leaves more free ports for growth</li>
+                    </ul>
+
+                    <p class="article-text">Even if a 100G optic or port costs more per unit than a 25G equivalent, multiplying the 25G option by four ports per node (and four optics) erodes that apparent savings very quickly.
+
+In real designs, the total fabric cost for 4 × 25 GbE versus 2 × 100 GbE frequently lands in the same ballpark, especially once you include support and cabling. In some cases, the 100 GbE option is actually slightly cheaper, while delivering more per‑node bandwidth, fewer TOR ports consumed, fewer points of failure, and a cleaner topology.</p>
+                </div>
+            </div>
+
+            <div class="section-header">A Simple, Defensible Rule of Thumb</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">If you want a guideline that's easy to communicate and hard to argue with, use this:
+
+If a Storage Spaces Direct or Azure Local node can sustain more than ~5 GB/s of storage throughput, 100 GbE networking is justified.
+
+Dense NVMe nodes reach that line quickly — often before they hit 16 drives per system.
+
+Equivalently:
+
+If you are planning for roughly 12 or more NVMe drives per node, design for 100 GbE from day one. Don't assume 2 × 25 GbE will scale with you.
+
+This is deliberately conservative. It doesn't require exotic workloads, perfect tuning, or lab‑only conditions. It's based on what real VMFleet tests and production systems actually do under load.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Conclusion</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">All‑NVMe Storage Spaces Direct and Azure Local fundamentally change where performance bottlenecks appear. Even with SMB Multichannel and dual‑port networking, dense NVMe nodes can saturate available bandwidth earlier than many designs anticipate.
+
+Recommending 100 GbE networking for systems with more than about 12 NVMe drives per node is conservative rather than aggressive, architecturally sound based on real tools and behavior, aligned with the economics of 4 × 25 GbE vs 2 × 100 GbE fabrics, and focused on delivering usable performance, not just impressive component specs.
+
+If you're investing in dense NVMe, the network needs to keep up — or it will define your limits. In that world, 100 GbE is not a luxury upgrade; it's the rational default once you pass a certain NVMe density.</p>
+                </div>
+            </div>
+
+            <a href="#" class="back-button" onclick="showBlog('index', event)"><i class="bi bi-arrow-left"></i> Back to Articles</a>
+        </div>
+
+        <!-- Blog Content: Azure Local Support -->
+        <div class="main-content" id="blog-azure-local">
+            <a href="#" class="back-button" onclick="showBlog('index', event)"><i class="bi bi-arrow-left"></i> Back to Articles</a>
+            
+            <div class="content-header">
+                <h1 class="article-title">Azure Local Support Deadlines, Stretched Clusters, and Rack‑Aware</h1>
+                <p class="article-subtitle">What You Need to Do Before April 2026</p>
+                <p class="article-byline">By Pieter Teeling • Azure Local Lifecycle</p>
+            </div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">Still on 22H2? Running a stretched cluster? Or sitting on 23H2 hoping it buys you time?
+
+This is your wake‑up call — with clear facts and supported directions, not "just wait."</p>
+                </div>
+            </div>
+
+            <div class="section-header">Why April 2026 Matters</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Azure Local (formerly Azure Stack HCI) has moved away from the old annual 22H2 / 23H2 cadence to a monthly release train with versions like 2507, 2508, 2509, and so on. These monthly releases align to a specific OS build (for example, 24H2 = 26100.xxxx) and follow Microsoft's Modern Lifecycle model, which requires customers to stay within six months of the latest release to remain supported.
+
+That change is good for features and fixes — but it also means older H2 releases have a hard runway.</p>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">Key Support Dates</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li><strong>22H2 OS (20349.xxxx)</strong> — Reached end of support May 31, 2025</li>
+                                <li><strong>23H2 with Solution</strong> — Final release 11.2510 (October 2025), supported until April 2026</li>
+                                <li><strong>23H2 OS only</strong> — Also supported only until April 2026</li>
+                                <li><strong>Stretched clusters</strong> — Supported only until April 2026</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">So there are three overlapping issues:
+
+1. You're still on 22H2 (possibly with stretched clusters).
+2. You're on 23H2, but haven't moved to 24H2 and risk falling out of support in April 2026.
+3. You're using stretched clusters and need to understand what replaces them.
+
+This post covers all three — at the support and architecture boundary level.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Baseline Assumptions</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">To keep this grounded:</p>
+                    
+                    <ul class="article-list">
+                        <li>Production environments run on hardware validated and supported for Azure Local, deployed in supported configurations.</li>
+                        <li>There is an active Azure support plan that allows Azure Local technical cases. At minimum, this requires Azure Standard, Professional Direct, or Developer support. The Basic plan is not sufficient.</li>
+                        <li>The discussion focuses strictly on Azure Local OS and solution versions that Microsoft explicitly documents and supports — namely the transition from 22H2 → 23H2 → 24H2 (26100.xxxx) under the current monthly release model.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-header">Scenario 1: Still on 22H2 — You're Already Out of Support</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">If you're still on Azure Local / Azure Stack HCI 22H2 (20349.xxxx) today:</p>
+                    
+                    <ul class="article-list">
+                        <li>22H2 reached end of support on May 31, 2025</li>
+                        <li>Monthly security and quality updates have stopped</li>
+                    </ul>
+
+                    <p class="article-text">Remaining on 22H2 means:</p>
+
+                    <ul class="article-list">
+                        <li>No new security fixes</li>
+                        <li>Increasing compatibility risk with drivers, agents, and integrations</li>
+                        <li>Any support case starts with: "upgrade first"</li>
+                    </ul>
+
+The good news: a direct path to 24H2
+
+Originally, the supported upgrade path was: 22H2 → 23H2 → 24H2
+
+That has changed.</p>
+
+                    <p class="article-text">Starting with the 2505 release, Microsoft introduced a direct OS upgrade path from 22H2 (20349.xxxx) → 24H2 (26100.xxxx). This skips the 23H2 hop and reduces reboots and maintenance windows. Microsoft explicitly recommends taking this direct path where applicable.</p>
+
+                    <p class="article-text">If you're on 22H2:</p>
+
+                    <ul class="article-list">
+                        <li>Plan a direct OS upgrade to 24H2 (26100.xxxx)</li>
+                        <li>Complete the Azure Local solution upgrade so your solution version aligns with the 24H2 OS and places you on the monthly train</li>
+                    </ul>
+
+                    <p class="article-text">That restores:</p>
+
+                    <ul class="article-list">
+                        <li>A supported OS baseline</li>
+                        <li>Monthly security and quality updates</li>
+                        <li>A future‑proof lifecycle posture</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="quote-box">
+                        <p class="quote-text">"22H2 is already out of support. Don't wait for April 2026 — upgrade now."</p>
+                        <p class="quote-attribution">— Microsoft Support guidance</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">Scenario 2: On 23H2 — Don't Fall Off in April 2026</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">If you're running 23H2 OS (25398.xxxx), you're in better shape — but only temporarily.</p>
+
+                    <p class="article-text">11.2510 (October 2025) was the final 23H2 solution release.</p>
+
+                    <p class="article-text">All 23H2 configurations are supported only until April 2026</p>
+
+                    <p class="article-text">After April 2026:</p>
+
+                    <ul class="article-list">
+                        <li>23H2 receives no monthly updates</li>
+                        <li>Support cases will require upgrading before troubleshooting continues</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="columns">
+                <div>
+                    <h2 class="article-headline">Case A: 23H2 OS with the Azure Local solution installed</h2>
+                    <p class="article-text">If the solution is already installed:</p>
+
+                    <ul class="article-list">
+                        <li>Solution updates are mandatory, not optional</li>
+                        <li>They are the mechanism that moves you onto 24H2 (26100.xxxx)</li>
+                    </ul>
+
+                    <p class="article-text">Azure Local follows a Modern Lifecycle cadence: you must stay within six months of the most recent release to remain supported.</p>
+                </div>
+
+                <div>
+                    <h2 class="article-headline">Case B: 23H2 OS only (solution not completed)</h2>
+                    <p class="article-text">Some environments upgraded the OS but never finished the solution upgrade.</p>
+
+                    <p class="article-text">Microsoft explicitly treats this as a temporary state and expects you to:</p>
+
+                    <ul class="article-list">
+                        <li>Complete post‑OS upgrade tasks</li>
+                        <li>Validate solution readiness</li>
+                        <li>Apply the solution upgrade</li>
+                    </ul>
+
+                    <p class="article-text">Sitting in OS‑only 23H2 as April 2026 approaches is not a safe long‑term position.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Microsoft's Special Case: Stretched Clusters</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">Microsoft's generic OS‑upgrade guidance includes this statement:
+
+"There is an exception to the preceding recommendation if you are using stretch clusters. Stretch clusters should wait to directly move to version 26100.xxxx (24H2)."
+
+This sentence is easy to misread.
+
+Context for stretched clusters:
+
+You have effectively been on borrowed time. Microsoft accommodated stretched clusters on 23H2 for customers that already implemented them on 22H2, but that accommodation ends when 23H2 support ends in April 2026.
+
+In practical terms:
+
+                    <ul class="article-list">
+                        <li>There is no supported in‑place upgrade path for stretched clusters to 24H2</li>
+                        <li>After April 2026, stretched clusters are unsupported</li>
+                    </ul>
+
+                    <p class="article-text">Your next supported state must be a non‑stretched 24H2 design, delivered through deployment and migration, not in‑place conversion.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Rack‑Aware vs. Stretched: The 1 ms Line</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Rack‑aware clustering introduces a strict architectural constraint:</p>
+
+                    <p class="article-text"><strong>≤ 1 millisecond round‑trip latency between racks or zones</strong></p>
+
+                    <p class="article-text">Rack‑aware clustering is intended for:</p>
+
+                    <ul class="article-list">
+                        <li>A single site</li>
+                        <li>Fault domains within the same datacenter (racks or rooms), not distant locations</li>
+                    </ul>
+
+                    <p class="article-text"><strong>Rule of thumb:</strong></p>
+
+                    <ul class="article-list">
+                        <li>&lt; 1 ms latency → Rack‑aware clustering is supported</li>
+                        <li>&gt; 1 ms latency → Rack‑aware clustering is not supported</li>
+                    </ul>
+
+                    <h3 class="article-headline">New deployments only</h3>
+
+                    <p class="article-text">Rack‑aware clustering is supported only for new deployments.</p>
+
+                    <p class="article-text">Converting an existing standard or stretched cluster in place to rack‑aware is not supported. Migration requires a side‑by‑side deployment and workload move.</p>
+
+                    <p class="article-text">If your current "stretched" design is actually two racks or rooms in the same datacenter with sub‑millisecond latency, rack‑aware clustering is often the simpler and more future‑proof replacement.</p>
+
+                    <p class="article-text">If your sites are truly separate, rack‑aware is not an option.</p>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">Migration Paths After April 2026</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li>If current "stretched" design has sub‑millisecond latency within one datacenter: use rack‑aware clustering</li>
+                                <li>If sites are truly separate: use independent clusters with replication</li>
+                                <li>No in‑place conversion supported</li>
+                                <li>Requires side‑by‑side deployment and workload move</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">Azure Local‑Managed VMs and the Arc Resource Bridge Boundary</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">When changing cluster topology, VM type matters.</p>
+
+                    <h3 class="article-headline">Plain Hyper‑V VMs</h3>
+
+                    <ul class="article-list">
+                        <li>Managed via Hyper‑V, Windows Admin Center, or SCVMM</li>
+                        <li>Can be replicated, migrated, backed up, and restored between clusters</li>
+                        <li>Remain plain Hyper‑V VMs on the destination</li>
+                    </ul>
+
+                    <h3 class="article-headline">Azure Local‑managed VMs</h3>
+
+                    <ul class="article-list">
+                        <li>Created and managed through Azure via the Azure Local solution</li>
+                        <li>Their Azure identity is tied to a specific Arc Resource Bridge and custom location</li>
+                    </ul>
+
+                    <p class="article-text">If you move or replicate the underlying VM to another cluster:</p>
+
+                    <ul class="article-list">
+                        <li>It appears there as a plain Hyper‑V VM</li>
+                        <li>There is currently no supported mechanism to preserve or transfer its Azure Local VM identity across clusters</li>
+                    </ul>
+
+                    <p class="article-text">You can still deploy the Azure Connected Machine (Arc) agent in the guest OS for OS‑level management, but that does not reconstitute it as an Azure Local‑managed VM.</p>
+
+                    <p class="article-text">This is a design decision, not a migration footnote.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Pulling It Together: A Practical Action Plan</div>
+
+            <div class="columns">
+                <div>
+                    <h2 class="article-headline">If you're on 22H2</h2>
+                    <p class="article-text">Accept that you're already out of support. Use the direct 22H2 → 24H2 OS upgrade. Complete the Azure Local solution upgrade.</p>
+                </div>
+
+                <div>
+                    <h2 class="article-headline">If you're on 23H2</h2>
+                    <p class="article-text">Treat April 2026 as a real deadline. Keep taking solution updates to land on 24H2 (26100.xxxx). If you're OS‑only, finish the solution upgrade now.</p>
+                </div>
+            </div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <h2 class="article-headline">If you're running a stretched cluster</h2>
+                    <p class="article-text">Recognize that stretched clusters are supported only through April 2026. Plan for a non‑stretched 24H2 architecture. Expect this to involve deployment and migration, not conversion.</p>
+                </div>
+            </div>
+
+            <div class="section-header">One‑Paragraph Summary for Stakeholders</div>
+
+            <div class="columns">
+                <div class="article full-width">
+                    <p class="article-text">Azure Local's 22H2 and 23H2 releases are on borrowed time. 22H2 is already out of support, and 23H2 — including stretched clusters — stops receiving security and quality updates after April 2026. Microsoft now operates Azure Local on a monthly release train based on the 24H2 OS (26100.x). To remain supported, environments must move to 24H2 and the current solution train. This transition is also the point at which stretched cluster designs must be replaced with supported non‑stretched architectures, such as rack‑aware clusters for low‑latency single‑site deployments or independent clusters with replication for multi‑site scenarios.</p>
+                </div>
+            </div>
+
+            <a href="#" class="back-button" onclick="showBlog('index', event)"><i class="bi bi-arrow-left"></i> Back to Articles</a>
+        </div>
+    </div>
+
+    <script>
+        // Update date dynamically
+        function updateDate() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const today = new Date();
+            const dateString = today.toLocaleDateString('en-US', options);
+            document.getElementById('currentDate').textContent = dateString;
+        }
+
+        // Load auto-generated posts from blogs-data.json
+        async function loadAutoPosts() {
+            try {
+                const response = await fetch('blogs-data.json');
+                if (!response.ok) {
+                    console.error('Failed to fetch blogs-data.json:', response.status, response.statusText);
+                    return [];
+                }
+                const data = await response.json();
+                console.log('Loaded auto posts:', data.auto_posts);
+                return data.auto_posts || [];
+            } catch (error) {
+                console.error('Error loading auto posts:', error);
+                return [];
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('DOMContentLoaded fired');
+            updateDate();
+            fetchMarketWatch();
+            
+            // Load and display auto posts
+            console.log('About to load auto posts...');
+            const autoPosts = await loadAutoPosts();
+            console.log('Auto posts result:', autoPosts);
+            if (autoPosts.length > 0) {
+                console.log('Calling displayAutoPosts with', autoPosts.length, 'posts');
+                displayAutoPosts(autoPosts);
+            } else {
+                console.log('No auto posts to display');
+            }
+        });
+
+        // Display auto-generated posts in the article section
+        function displayAutoPosts(autoPosts) {
+            console.log('displayAutoPosts called with', autoPosts.length, 'posts');
+            
+            // Find the blog index container
+            const blogIndexContainer = document.getElementById('blogIndex');
+            console.log('blogIndexContainer found:', blogIndexContainer ? 'YES' : 'NO');
+            if (!blogIndexContainer) {
+                console.error('Could not find blogIndexContainer');
+                return;
+            }
+
+            // Create a container for auto posts if it doesn't exist
+            let autoPostsContainer = document.getElementById('auto-posts-container');
+            if (!autoPostsContainer) {
+                console.log('Creating autoPostsContainer');
+                autoPostsContainer = document.createElement('div');
+                autoPostsContainer.id = 'auto-posts-container';
+                autoPostsContainer.style.marginTop = '60px';
+                autoPostsContainer.style.borderTop = '2px solid #e5e7eb';
+                autoPostsContainer.style.paddingTop = '40px';
+                
+                // Append to the blog index container
+                blogIndexContainer.appendChild(autoPostsContainer);
+            }
+
+            // Add section header
+            if (!document.getElementById('auto-posts-header')) {
+                const header = document.createElement('div');
+                header.id = 'auto-posts-header';
+                header.className = 'section-header';
+                header.style.marginBottom = '40px';
+                header.textContent = 'Azure Local Documentation Updates';
+                autoPostsContainer.appendChild(header);
+            }
+
+            // Add auto posts as articles
+            console.log('Adding', autoPosts.length, 'posts to DOM');
+            autoPosts.forEach((post, index) => {
+                const postId = `auto-post-${index}`;
+                console.log('Processing post', index, ':', post.title);
+                if (!document.getElementById(postId)) {
+                    const article = document.createElement('article');
+                    article.id = postId;
+                    article.className = 'article';
+                    article.style.marginBottom = '50px';
+                    article.style.borderBottom = '2px solid #e5e7eb';
+                    article.style.paddingBottom = '40px';
+
+                    const dateObj = new Date(post.date);
+                    const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+
+                    article.innerHTML = `
+                        <div class="blog-header-row">
+                            <div class="blog-number" style="display: flex; align-items: center; gap: 8px;">
+                                <span style="background: #1a2332; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">AUTO</span>
+                                <span>Azure Local Update</span>
+                            </div>
+                            <div class="blog-date">${formattedDate}</div>
+                        </div>
+                        <h2 class="article-title">${post.title}</h2>
+                        <p class="article-subtitle">${post.subtitle}</p>
+                        <p class="article-byline">Auto-generated from Azure Local documentation changes</p>
+                        
+                        <div class="article-text" style="max-height: 200px; overflow: hidden;">
+                            ${post.content}
+                        </div>
+                        
+                        <button onclick="expandAutoPost('${postId}')" style="background: none; border: none; padding: 0; cursor: pointer; margin-top: 20px;">
+                            <span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Update <i class="bi bi-arrow-right"></i></span>
+                        </button>
+                    `;
+
+                    autoPostsContainer.appendChild(article);
+                    console.log('Added article to DOM:', postId);
+                }
+            });
+        }
+
+        // Expand auto post to full view
+        function expandAutoPost(postId) {
+            const article = document.getElementById(postId);
+            const contentDiv = article.querySelector('.article-text');
+            const button = article.querySelector('button');
+
+            if (contentDiv.style.maxHeight === 'none') {
+                contentDiv.style.maxHeight = '200px';
+                button.innerHTML = '<span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Update <i class="bi bi-arrow-right"></i></span>';
+            } else {
+                contentDiv.style.maxHeight = 'none';
+                button.innerHTML = '<span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Collapse <i class="bi bi-arrow-up"></i></span>';
+            }
+        }
+
+        // Fetch RSS feeds and populate Market Watch
+        async function fetchMarketWatch() {
+            const feeds = [
+                'https://www.cloudcomputing-news.net/feed/',
+                'https://techcommunity.microsoft.com/t5/azure-compute-blog/ct-p/AzureComputeBlog/feed',
+                'https://techcommunity.microsoft.com/t5/azure-arc-blog/ct-p/AzureArcBlog/feed',
+                'https://feeds.feedburner.com/cioreview/fvHK'
+            ];
+
+            const marketWatchContent = document.getElementById('marketWatchContent');
+            const articles = [];
+            const feedArticles = {};
+
+            for (const feed of feeds) {
+                try {
+                    const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}`);
+                    const data = await response.json();
+                    
+                    if (data.items) {
+                        feedArticles[feed] = data.items.slice(0, 3);
+                    }
+                } catch (error) {
+                    console.error('Error fetching feed:', feed, error);
+                }
+            }
+
+            // Prioritize CIO Review (exactly 2 articles), then add 2 more from other sources
+            const cioFeed = 'https://feeds.feedburner.com/cioreview/fvHK';
+            const topArticles = [];
+            
+            if (feedArticles[cioFeed]) {
+                topArticles.push(...feedArticles[cioFeed].slice(0, 2));
+            }
+
+            // Add articles from other feeds until we have 4
+            for (const feed of feeds) {
+                if (feed !== cioFeed && feedArticles[feed] && topArticles.length < 4) {
+                    topArticles.push(...feedArticles[feed].slice(0, 4 - topArticles.length));
+                }
+            }
+
+            // Sort all by date
+            topArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+            if (topArticles.length > 0) {
+                let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+                topArticles.forEach(article => {
+                    const title = article.title.substring(0, 70) + (article.title.length > 70 ? '...' : '');
+                    html += `<li style="margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;"><a href="${article.link}" target="_blank" style="color: #1a2332; text-decoration: none; font-weight: 600; font-size: 12px; line-height: 1.5; display: block;">${title}</a></li>`;
+                });
+                html += '</ul>';
+                marketWatchContent.innerHTML = html;
+            } else {
+                marketWatchContent.innerHTML = '<p style="font-size: 13px; color: #6b7280;">Unable to load news at this time. Please check back later.</p>';
+            }
+        }
+
+        function showBlog(blogId, event) {
+            if (event) {
+                event.preventDefault();
+            }
+
+            // Hide all content
+            document.getElementById('blogIndex').style.display = 'none';
+            document.getElementById('blog-100gbit').classList.remove('active');
+            document.getElementById('blog-azure-local').classList.remove('active');
+
+            if (blogId === 'index') {
+                document.getElementById('blogIndex').style.display = 'block';
+            } else if (blogId === '100gbit') {
+                document.getElementById('blog-100gbit').classList.add('active');
+            } else if (blogId === 'azure-local') {
+                document.getElementById('blog-azure-local').classList.add('active');
+            }
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>

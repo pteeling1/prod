@@ -44,14 +44,16 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "Found $COUNT recent commits"
+            echo "DEBUG: First commit structure:"
+            echo "$RESPONSE" | jq '.[0]' 2>/dev/null | head -20
             
-            # Safely extract commits with error handling
-            COMMITS=$(echo "$RESPONSE" | jq -r '.[] | select(.commit) | "\(.sha[0:7])|\(.commit.message // "")|\(.commit.author.date // "")"' 2>/dev/null | head -5)
+            # Try different jq filters
+            COMMITS=$(echo "$RESPONSE" | jq -r '.[] | "\(.sha[0:7])|\(.commit.message // .message // "No message")|\(.commit.author.date // .author.date // "")"' 2>/dev/null)
             
             if [ ! -z "$COMMITS" ]; then
               echo "has_changes=true" >> $GITHUB_OUTPUT
               echo "commits<<EOF" >> $GITHUB_OUTPUT
-              echo "$COMMITS" >> $GITHUB_OUTPUT
+              echo "$COMMITS" | head -5 >> $GITHUB_OUTPUT
               echo "EOF" >> $GITHUB_OUTPUT
             else
               echo "Could not parse commits from response"

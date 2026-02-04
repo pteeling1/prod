@@ -369,7 +369,7 @@ jobs:
           BLOG_POST_JSON: ${{ steps.generate-post.outputs.post_json }}
 
       - name: Commit and push changes
-        if: steps.generate-post.outputs.result != ''
+        if: steps.generate-post.outputs.post_json != ''
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"

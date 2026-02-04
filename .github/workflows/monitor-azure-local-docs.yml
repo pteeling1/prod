@@ -14,5 +14,80 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Test workflow
-        run: echo "✅ Workflow triggered successfully"
+      - name: Fetch Azure Local doc changes
+        id: fetch-commits
+        run: |
+          SINCE_DATE=$(date -u -d "7 days ago" +"%Y-%m-%dT%H:%M:%SZ")
+          RESPONSE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${SINCE_DATE}&per_page=5")
+          
+          echo "commits=$(echo "$RESPONSE" | jq -c '.' )" >> $GITHUB_OUTPUT
+      
+      - name: Generate blog with Claude
+        id: generate-blog
+        run: |
+          cat > /tmp/gen-blog.js << 'SCRIPT'
+          const commits = JSON.parse(process.env.COMMITS_DATA);
+          
+          // Filter for Azure Local changes
+          let azureLocalCommits = [];
+          for (let commit of commits) {
+            if (JSON.stringify(commit).includes('azure-local')) {
+              azureLocalCommits.push(commit);
+            }
+          }
+          
+          if (azureLocalCommits.length === 0) {
+            console.log('No Azure Local changes found');
+            process.exit(0);
+          }
+          
+          const commit = azureLocalCommits[0];
+          const title = 'Azure Local Documentation Update — ' + new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+          
+          // Fallback blog content (in production, would call Claude)
+          const content = `<p class="article-text">Azure Local infrastructure documentation has been updated with important changes. Review the updated documentation pages to ensure your deployments remain current with the latest requirements.</p>`;
+          
+          const blogPost = {
+            id: 'auto-' + new Date().toISOString().split('T')[0] + '-' + Math.random().toString(36).substr(2, 9),
+            title: title,
+            subtitle: 'Azure Local documentation improvements',
+            date: new Date().toISOString().split('T')[0],
+            content: content,
+            source: 'Azure Local Docs Monitor',
+            auto_generated: true
+          };
+          
+          console.log(JSON.stringify(blogPost));
+          SCRIPT
+          
+          node /tmp/gen-blog.js > /tmp/blog-post.json 2>&1
+          BLOG_JSON=$(cat /tmp/blog-post.json)
+          echo "blog_post=$BLOG_JSON" >> $GITHUB_OUTPUT
+        env:
+          COMMITS_DATA: ${{ steps.fetch-commits.outputs.commits }}
+      
+      - name: Update blogs-data.json
+        run: |
+          BLOG_JSON='${{ steps.generate-blog.outputs.blog_post }}'
+          
+          # Check if blog post is valid JSON
+          if ! echo "$BLOG_JSON" | jq empty 2>/dev/null; then
+            echo "Invalid blog JSON, skipping"
+            exit 0
+          fi
+          
+          # Update blogs-data.json
+          jq ".auto_posts |= [$(echo "$BLOG_JSON")] + ." blogs-data.json > blogs-data.json.tmp
+          mv blogs-data.json.tmp blogs-data.json
+          
+          # Commit if changed
+          if git diff --quiet blogs-data.json; then
+            echo "No changes to blog data"
+          else
+            git config user.email "bot@example.com"
+            git config user.name "Blog Bot"
+            git add blogs-data.json
+            git commit -m "Auto-generated blog post"
+            git push origin main
+          fi

@@ -81,7 +81,16 @@ jobs:
           
           async function run() {
             const commits = JSON.parse(process.env.COMMITS_DATA || '[]');
-            if (!commits.length) return;
+            if (!commits || !commits.length) {
+              console.log(JSON.stringify({
+                id: 'auto-' + new Date().toISOString().slice(0,10) + '-none',
+                title: 'Azure Local Docs Monitor', subtitle: 'No recent changes',
+                date: new Date().toISOString().slice(0,10),
+                content: '<p class="article-text">No Azure Local documentation updates found in the past week.</p>',
+                source: 'Azure Local Docs Monitor', auto_generated: true
+              }));
+              return;
+            }
             
             const c = commits[0];
             const msg = (c.commit.message || '').split('\n')[0];
@@ -107,13 +116,23 @@ jobs:
               }));
             }
           }
-          run().catch(e => console.log(JSON.stringify({
-            id: 'auto-fallback', title: 'Update', subtitle: 'docs', date: new Date().toISOString().slice(0,10),
-            content: '<p>Update available</p>', source: 'Monitor', auto_generated: true
-          })));
+          
+          run().catch(e => {
+            console.log(JSON.stringify({
+              id: 'auto-fallback', title: 'Update', subtitle: 'docs',
+              date: new Date().toISOString().slice(0,10),
+              content: '<p>Update available</p>', source: 'Monitor', auto_generated: true
+            }));
+            process.exit(1);
+          });
           EOF
           
-          node /tmp/gen-blog.js > /tmp/blog.json 2>/dev/null
+          node /tmp/gen-blog.js > /tmp/blog.json 2>&1
+          
+          # Log the output for debugging
+          echo "Blog JSON output:"
+          cat /tmp/blog.json
+          
           if [ -f /tmp/blog.json ] && [ -s /tmp/blog.json ]; then
             echo "blog_post<<EOFBLOG" >> $GITHUB_OUTPUT
             cat /tmp/blog.json >> $GITHUB_OUTPUT

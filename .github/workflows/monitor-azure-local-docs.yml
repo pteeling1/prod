@@ -146,188 +146,122 @@ jobs:
           echo "File content fetch complete"
           exit 0
 
-      - name: Generate blog post with Copilot
+      - name: Generate blog post from commits
         if: steps.get-commits.outputs.has_changes == 'true'
         id: generate-post
-        uses: actions/github-script@v7
-        env:
-          COPILOT_TOKEN: ${{ secrets.COPILOT_API_TOKEN }}
-          COMMITS: ${{ steps.get-commits.outputs.commits }}
-          FILE_CONTENTS: ${{ steps.changed-files.outputs.file_contents }}
-        with:
-          script: |
-            const https = require('https');
-            
-            const prompt = `You are a technical blog writer for Teeling Cloud Courant, a publication about hybrid cloud and Azure Local.
-            
-            Recent changes to Azure Local documentation:
-            
-            Commits:
-            ${{ env.COMMITS }}
-            
-            Changed files and preview content:
-            ${{ env.FILE_CONTENTS }}
-            
-            Based on these Azure documentation updates, create a new blog post. Use this as your style guide:
-            
-            ${require('fs').readFileSync('./blogs-style-guide.md', 'utf8')}
-            
-            Requirements:
-            - Write in the same tone and format as existing Teeling Cloud Courant posts
-            - Focus on the architectural and operational implications for Azure Local deployments
-            - Include specific details from the updated documentation
-            - Provide actionable guidance where relevant
-            - Assume the audience is hybrid cloud professionals and Azure Local operators
-            - Keep a professional but conversational tone
-            
-            IMPORTANT: Respond ONLY with valid JSON, no other text. Structure:
-            {
-              "title": "Blog title here",
-              "subtitle": "Subtitle or key takeaway",
-              "content": "Full blog content in HTML (wrap paragraphs in <p class=\\"article-text\\"> tags)"
-            }`;
-            
-            // Call GitHub Copilot API via models endpoint
-            return new Promise((resolve, reject) => {
-              const postData = JSON.stringify({
-                model: 'gpt-4',
-                messages: [
-                  {
-                    role: 'system',
-                    content: 'You are an expert technical writer specializing in Azure infrastructure and hybrid cloud architecture. You MUST respond with ONLY valid JSON, no markdown or extra text.'
-                  },
-                  {
-                    role: 'user',
-                    content: prompt
-                  }
-                ],
-                temperature: 0.7,
-                max_tokens: 2000
-              });
-              
-              // Use GitHub Models API endpoint (correct endpoint)
-              const options = {
-                hostname: 'api.github.com',
-                path: '/models/chat/completions',
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${{ env.COPILOT_TOKEN }}`,
-                  'Content-Type': 'application/json',
-                  'Content-Length': postData.length,
-                  'Accept': 'application/vnd.github+json',
-                  'X-GitHub-Api-Version': '2024-10-01',
-                  'User-Agent': 'GitHub-Workflow'
-                }
-              };
-              
-              const req = https.request(options, (res) => {
-                let data = '';
-                
-                res.on('data', (chunk) => { data += chunk; });
-                
-                res.on('end', () => {
-                  console.log(`API Response Status: ${res.statusCode}`);
-                  console.log(`Response (first 500 chars): ${data.substring(0, 500)}`);
-                  
-                  if (res.statusCode !== 200) {
-                    reject(new Error(`API returned status ${res.statusCode}: ${data.substring(0, 200)}`));
-                    return;
-                  }
-                  
-                  try {
-                    // Parse the wrapper response
-                    const wrapper = JSON.parse(data);
-                    
-                    // Extract the actual content
-                    let content;
-                    if (wrapper.choices && wrapper.choices[0] && wrapper.choices[0].message) {
-                      content = wrapper.choices[0].message.content;
-                    } else if (typeof wrapper === 'string') {
-                      content = wrapper;
-                    } else {
-                      content = JSON.stringify(wrapper);
-                    }
-                    
-                    console.log(`Extracted content (first 300 chars): ${content.substring(0, 300)}`);
-                    
-                    // Try to parse as JSON
-                    try {
-                      const parsed = JSON.parse(content);
-                      resolve({ status: 200, data: parsed });
-                    } catch (jsonError) {
-                      // If it's not JSON, return it as is for further processing
-                      console.log('Content is not JSON, attempting to extract JSON...');
-                      
-                      // Try to extract JSON from markdown code blocks
-                      const jsonMatch = content.match(/```(?:json)?\s*({[\s\S]*?})\s*```/);
-                      if (jsonMatch) {
-                        resolve({ status: 200, data: JSON.parse(jsonMatch[1]) });
-                      } else {
-                        reject(new Error(`Response is not valid JSON and no JSON block found: ${content.substring(0, 200)}`));
-                      }
-                    }
-                  } catch (parseError) {
-                    reject(new Error(`Failed to parse response: ${parseError.message}`));
-                  }
-                });
-              });
-              
-              req.on('error', (error) => {
-                console.error(`Request error: ${error.message}`);
-                reject(error);
-              });
-              
-              req.on('timeout', () => {
-                req.destroy();
-                reject(new Error('Request timeout'));
-              });
-              
-              req.setTimeout(30000);
-              req.write(postData);
-              req.end();
-            });
-
-
-      - name: Update blogs-data.json
-        if: steps.generate-post.outputs.result != ''
         run: |
           set +e
           
-          # Extract the actual result data
-          RESULT='${{ steps.generate-post.outputs.result }}'
+          COMMITS='${{ steps.get-commits.outputs.commits }}'
+          FILE_CONTENTS='${{ steps.changed-files.outputs.file_contents }}'
           
-          if [ -z "$RESULT" ] || [ "$RESULT" = "null" ]; then
-            echo "No valid result from Copilot API"
-            exit 0
-          fi
-          
-          # Use node to process JSON safely
+          # Use Node.js to generate blog post from commit data
           node << 'NODEJS_EOF'
           const fs = require('fs');
           
           try {
-            const resultStr = process.env.COPILOT_RESULT;
-            if (!resultStr) {
-              console.log('No COPILOT_RESULT provided');
+            const commits = process.env.COMMITS || '';
+            const fileContents = process.env.FILE_CONTENTS || '';
+            
+            // Parse commits
+            const commitLines = commits.split('\n').filter(line => line.trim());
+            const commitMessages = commitLines.map(line => {
+              const parts = line.split('|');
+              return {
+                sha: (parts[0] || '').trim(),
+                message: (parts[1] || '').trim(),
+                date: (parts[2] || '').trim()
+              };
+            }).filter(c => c.message);
+            
+            if (commitMessages.length === 0) {
+              console.log('No commits to process');
               process.exit(0);
             }
             
-            let resultData;
+            // Extract key topics from commit messages
+            const topics = new Set();
+            commitMessages.forEach(c => {
+              const msg = c.message.toLowerCase();
+              if (msg.includes('support') || msg.includes('deadline')) topics.add('support deadline');
+              if (msg.includes('cluster') || msg.includes('sizing')) topics.add('cluster configuration');
+              if (msg.includes('update') || msg.includes('change')) topics.add('documentation update');
+              if (msg.includes('feature') || msg.includes('new')) topics.add('new capability');
+              if (msg.includes('fix') || msg.includes('bug')) topics.add('bug fix');
+              if (msg.includes('performance') || msg.includes('optimize')) topics.add('performance');
+            });
+            
+            // Generate blog post
+            const date = new Date().toISOString().split('T')[0];
+            const topicsList = Array.from(topics).join(', ');
+            
+            const blogPost = {
+              title: 'Azure Local Documentation Update — ' + new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+              subtitle: topicsList || 'Recent Azure Local documentation changes and updates',
+              content: `
+              <p class="article-text">The Azure Local documentation has been recently updated with ${commitMessages.length} new changes. These updates reflect ongoing improvements to Azure Local deployments and best practices.</p>
+              
+              <p class="article-text"><strong>What's Changed:</strong></p>
+              <ul class="article-list">
+              ${commitMessages.slice(0, 5).map(c => `<li>${c.message}</li>`).join('\n')}
+              </ul>
+              
+              <p class="article-text"><strong>Key Areas:</strong></p>
+              <ul class="article-list">
+              ${Array.from(topics).slice(0, 5).map(t => `<li>${t}</li>`).join('\n')}
+              </ul>
+              
+              <p class="article-text">For detailed information about these updates, refer to the official <a href="https://learn.microsoft.com/en-us/azure/azure-local/" target="_blank">Azure Local documentation</a>.</p>
+              `.trim()
+            };
+            
+            // Output as JSON
+            console.log(JSON.stringify(blogPost));
+            
+          } catch (error) {
+            console.error('Error generating blog post:', error);
+            process.exit(1);
+          }
+          NODEJS_EOF
+          
+          exit 0
+        env:
+          COMMITS: ${{ steps.get-commits.outputs.commits }}
+          FILE_CONTENTS: ${{ steps.changed-files.outputs.file_contents }}
+
+
+      - name: Update blogs-data.json
+        if: steps.generate-post.outcome == 'success'
+        run: |
+          set +e
+          
+          # Use node to process blog post and update JSON
+          node << 'NODEJS_EOF'
+          const fs = require('fs');
+          const { execSync } = require('child_process');
+          
+          try {
+            // Get the output from the generate-post step
+            let blogPost = null;
+            
             try {
-              resultData = JSON.parse(resultStr);
+              // Read from stdout of previous step (stored in environment)
+              const result = process.env.BLOG_POST_JSON;
+              if (result && result.trim()) {
+                blogPost = JSON.parse(result);
+              }
             } catch (e) {
-              console.error('Failed to parse result:', e.message);
-              console.error('Raw (first 300 chars):', resultStr.substring(0, 300));
-              process.exit(0);
+              console.log('Could not parse from environment, creating default post');
             }
             
-            // Handle both direct object and wrapped format
-            let post = resultData.data || resultData;
-            
-            if (!post || !post.title) {
-              console.error('Post missing required fields');
-              console.log('Post object:', JSON.stringify(post, null, 2));
-              process.exit(0);
+            // Fallback to a default post if parsing failed
+            if (!blogPost || !blogPost.title) {
+              const date = new Date().toISOString().split('T')[0];
+              blogPost = {
+                title: 'Azure Local Documentation Update',
+                subtitle: 'Recent documentation changes and improvements',
+                content: '<p class="article-text">Documentation has been updated with the latest Azure Local information. Check the official documentation for details.</p>'
+              };
             }
             
             const date = new Date().toISOString().split('T')[0];
@@ -345,10 +279,10 @@ jobs:
             
             const newPost = {
               id: `auto-${date}-${Math.random().toString(36).substr(2, 9)}`,
-              title: post.title || 'Azure Local Documentation Update',
-              subtitle: post.subtitle || 'New updates to Azure Local documentation',
+              title: blogPost.title || 'Azure Local Documentation Update',
+              subtitle: blogPost.subtitle || 'New updates to Azure Local documentation',
               date: date,
-              content: post.content || '<p class="article-text">Blog content generated</p>',
+              content: blogPost.content || '<p class="article-text">Blog content generated from Azure Local documentation changes</p>',
               source: 'Azure Local Docs Monitor',
               auto_generated: true
             };
@@ -358,17 +292,19 @@ jobs:
             blogsData.auto_posts = blogsData.auto_posts.slice(0, 12);
             
             fs.writeFileSync(dataPath, JSON.stringify(blogsData, null, 2));
-            console.log('✓ Updated blogs-data.json with new post:', newPost.id);
+            console.log('✓ Updated blogs-data.json');
+            console.log('  Post ID:', newPost.id);
+            console.log('  Title:', newPost.title);
             
           } catch (error) {
-            console.error('Error updating blogs-data.json:', error);
-            process.exit(0);
+            console.error('Error:', error.message);
+            process.exit(1);
           }
           NODEJS_EOF
           
           exit 0
         env:
-          COPILOT_RESULT: ${{ steps.generate-post.outputs.result }}
+          BLOG_POST_JSON: ${{ steps.generate-post.outputs.result }}
 
       - name: Commit and push changes
         if: steps.generate-post.outputs.result != ''

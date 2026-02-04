@@ -311,6 +311,7 @@ jobs:
               let currentSection = '';
               let addedLines = [];
               let removedLines = [];
+              let contextLines = [];
               
               for (const line of patchLines) {
                 // Track section headers
@@ -325,21 +326,57 @@ jobs:
                   addedLines.push(line.substring(1).trim());
                 } else if (line.startsWith('-') && !line.startsWith('---')) {
                   removedLines.push(line.substring(1).trim());
+                } else if (line.startsWith(' ') && !line.startsWith('   ')) {
+                  contextLines.push(line.substring(1).trim());
                 }
               }
               
-              // Extract specific changes like requirements, steps, etc
-              const requirementMatch = [...patchLines].find(l => l.includes('requires') || l.includes('minimum') || l.includes('must have'));
-              if (requirementMatch && requirementMatch.startsWith('+')) {
-                changes.push(`✓ Updated requirements: ${requirementMatch.substring(1).trim().substring(0, 60)}...`);
+              // Extract meaningful changed requirements/steps
+              for (let i = 0; i < patchLines.length; i++) {
+                const line = patchLines[i];
+                
+                // Look for added requirements or new steps
+                if (line.startsWith('+') && !line.startsWith('+++')) {
+                  const content = line.substring(1).trim();
+                  
+                  // Extract meaningful keywords from added content
+                  if (content.match(/require|must|should|need|account|rights|permission|group|role/i)) {
+                    // Find corresponding removed line to show what changed
+                    const removedIdx = removedLines.findIndex(r => 
+                      r.toLowerCase().includes('account') || r.toLowerCase().includes('create an') || r.toLowerCase().includes('administrator')
+                    );
+                    
+                    if (removedIdx >= 0) {
+                      const removed = removedLines[removedIdx];
+                      const added = content;
+                      
+                      // Check if this is an update vs new requirement
+                      if (added.length > removed.length) {
+                        // Extract the difference
+                        const diff = added.substring(removed.length).trim();
+                        if (diff.length > 10) {
+                          changes.push(`✓ Updated: ${diff.substring(0, 80)}`);
+                        }
+                      } else if (!removed.includes(content)) {
+                        changes.push(`✓ New requirement: ${added.substring(0, 80)}`);
+                      }
+                    } else if (content.length > 30) {
+                      changes.push(`✓ ${content.substring(0, 85)}`);
+                    }
+                  }
+                }
               }
               
+              // Extract specific changes like deprecated content
               const deprecatedMatch = [...patchLines].find(l => l.includes('deprecated') || l.includes('no longer'));
               if (deprecatedMatch && deprecatedMatch.startsWith('-')) {
                 changes.push(`✓ Removed deprecated content`);
               }
               
-              return changes.length > 0 ? changes : ['✓ Documentation updated with improvements'];
+              // Remove duplicates
+              const uniqueChanges = [...new Set(changes)].filter(c => c && c.length > 5);
+              
+              return uniqueChanges.length > 0 ? uniqueChanges.slice(0, 6) : ['✓ Documentation updated with improvements'];
             }
             
             // Collect all patches to analyze

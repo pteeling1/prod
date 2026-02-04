@@ -1,3 +1,13 @@
 {
-  "auto_posts": []
+  "auto_posts": [
+    {
+      "id": "auto-2026-02-04-d268v3z39",
+      "title": "Azure Local Documentation Update — February 4",
+      "subtitle": "Azure Local documentation improvements",
+      "date": "2026-02-04",
+      "content": "<p class=\"article-text\">Azure Local is tightening its operational requirements. These changes suggest Microsoft is responding to real-world operational challenges, hardening security postures, or streamlining deployment workflows based on customer feedback.</p>\n    \n    \n    <p class=\"article-text\"><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/commit/792bd0a\" target=\"_blank\">View commit on GitHub →</a></p>",
+      "source": "Azure Local Docs Monitor",
+      "auto_generated": true
+    }
+  ]
 }

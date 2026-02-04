@@ -1,6 +1,15 @@
 {
   "auto_posts": [
     {
+      "id": "auto-2026-02-04-50tb5pqk7",
+      "title": "Azure Local Documentation Update — February 4",
+      "subtitle": "documentation update",
+      "date": "2026-02-04",
+      "content": "<p class=\"article-text\">The Azure Local documentation has been recently updated with 4 new changes. These updates reflect ongoing improvements to Azure Local deployments and best practices.</p>\n    \n    <p class=\"article-text\"><strong>What's Changed:</strong></p>\n    <ul class=\"article-list\">\n    <li>Merge pull request #4135 from MicrosoftDocs/main639057565797099471sync_temp</li>\n<li>2026-02-03T23:03:13Z</li>\n<li>Merging changes synced from https://github.com/MicrosoftDocs/azure-stack-docs-pr (branch live)</li>\n<li>Merge pull request #20054 from MicrosoftDocs/main</li>\n    </ul>\n    \n    <p class=\"article-text\"><strong>Key Areas:</strong></p>\n    <ul class=\"article-list\">\n    <li>documentation update</li>\n    </ul>\n    \n    <p class=\"article-text\">For detailed information about these updates, refer to the official <a href=\"https://learn.microsoft.com/en-us/azure/azure-local/\" target=\"_blank\">Azure Local documentation</a>.</p>",
+      "source": "Azure Local Docs Monitor",
+      "auto_generated": true
+    },
+    {
       "id": "auto-001",
       "title": "Azure Local Networking Architecture: Planning for Scale and Performance",
       "subtitle": "Guidance on software-defined networking, NIC bonding, and cluster connectivity best practices updated",

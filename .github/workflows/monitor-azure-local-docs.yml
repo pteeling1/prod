@@ -245,43 +245,102 @@ jobs:
             const filePreview = fileContents.substring(0, 300);
             console.log(`Content preview (first 300 chars):\n${filePreview}...\n`);
             
-            // Extract key topics from commit messages
-            const topics = new Set();
-            commitMessages.forEach(c => {
-              const msg = c.message.toLowerCase();
-              if (msg.includes('support') || msg.includes('deadline')) topics.add('support deadline');
-              if (msg.includes('cluster') || msg.includes('sizing')) topics.add('cluster configuration');
-              if (msg.includes('update') || msg.includes('change')) topics.add('documentation update');
-              if (msg.includes('feature') || msg.includes('new')) topics.add('new capability');
-              if (msg.includes('fix') || msg.includes('bug')) topics.add('bug fix');
-              if (msg.includes('performance') || msg.includes('optimize')) topics.add('performance');
-            });
+            // Extract meaningful information from file contents (not just commit messages)
+            const fileLines = fileContents.split('\n');
             
-            console.log('📊 EXTRACTED TOPICS:');
-            Array.from(topics).forEach(t => console.log(`  • ${t}`));
+            // Extract file path and relevant content
+            let documentTitle = 'Azure Local Documentation Updates';
+            let keyPoints = [];
+            let inFileSection = false;
+            let currentFile = '';
+            
+            for (let i = 0; i < fileLines.length; i++) {
+              const line = fileLines[i];
+              
+              // Detect file sections
+              if (line.startsWith('--- File:')) {
+                currentFile = line.replace('--- File:', '').trim();
+                inFileSection = true;
+                // Extract meaningful title from file path (e.g., "install-solution-upgrade.md" -> "Solution Upgrade Installation")
+                if (currentFile.includes('/')) {
+                  const filename = currentFile.split('/').pop().replace(/\.md$/, '').replace(/-/g, ' ');
+                  if (filename && filename.length > 5) {
+                    keyPoints.push(filename.charAt(0).toUpperCase() + filename.slice(1));
+                  }
+                }
+              }
+              
+              // Extract markdown headings as key points
+              if (line.match(/^#+\s/)) {
+                const heading = line.replace(/^#+\s/, '').trim();
+                if (heading.length > 5 && heading.length < 100 && keyPoints.indexOf(heading) === -1) {
+                  keyPoints.push(heading);
+                }
+              }
+              
+              // Look for important phrases in the content
+              if (inFileSection && line.length > 20) {
+                const lowerLine = line.toLowerCase();
+                if ((lowerLine.includes('new') && lowerLine.includes('feature')) ||
+                    (lowerLine.includes('update') && lowerLine.includes('improve')) ||
+                    (lowerLine.includes('important') && lowerLine.includes('note')) ||
+                    lowerLine.includes('configuration') ||
+                    lowerLine.includes('upgrade') ||
+                    lowerLine.includes('requirement')) {
+                  // Clean up the line
+                  let cleanedPoint = line.replace(/^[#\-\*]\s+/, '').replace(/\[.*?\]\(.*?\)/g, '').trim();
+                  if (cleanedPoint.length > 10 && cleanedPoint.length < 150) {
+                    keyPoints.push(cleanedPoint);
+                  }
+                }
+              }
+            }
+            
+            // Remove duplicates and limit
+            keyPoints = [...new Set(keyPoints)].slice(0, 8);
+            
+            console.log('📄 EXTRACTED FROM FILES:');
+            console.log(`Files analyzed: ${currentFile ? currentFile.split(',').length : 0}`);
+            keyPoints.forEach(p => console.log(`  • ${p}`));
             console.log('');
             
-            // Generate blog post
+            // Generate better blog post with file content insights
             const date = new Date().toISOString().split('T')[0];
-            const topicsList = Array.from(topics).join(', ');
+            
+            // Create a more informative subtitle
+            const subtitle = keyPoints.length > 0 
+              ? keyPoints.slice(0, 3).join(' • ')
+              : 'Azure Local documentation improvements and updates';
             
             const blogPost = {
               title: 'Azure Local Documentation Update — ' + new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
-              subtitle: topicsList || 'Recent Azure Local documentation changes and updates',
+              subtitle: subtitle,
               content: `
-              <p class="article-text">The Azure Local documentation has been recently updated with ${commitMessages.length} new changes. These updates reflect ongoing improvements to Azure Local deployments and best practices.</p>
+              <p class="article-text">The Azure Local documentation has been updated with important new content and improvements. These updates cover key areas of Azure Local deployment, configuration, and operations.</p>
               
-              <p class="article-text"><strong>What's Changed:</strong></p>
+              <p class="article-text"><strong>📚 Updated Topics:</strong></p>
               <ul class="article-list">
-              ${commitMessages.slice(0, 5).map(c => `<li>${c.message}</li>`).join('\n')}
+              ${keyPoints.slice(0, 6).map(p => `<li>${p}</li>`).join('\n')}
               </ul>
               
-              <p class="article-text"><strong>Key Areas:</strong></p>
-              <ul class="article-list">
-              ${Array.from(topics).slice(0, 5).map(t => `<li>${t}</li>`).join('\n')}
-              </ul>
+              <p class="article-text"><strong>📋 Recent Changes:</strong></p>
+              <p class="article-text">
+              ${commitMessages.slice(0, 3)
+                .map(c => {
+                  // Clean up merge commit messages to show actual content
+                  let msg = c.message;
+                  if (msg.includes('Merge pull request')) {
+                    msg = msg.replace(/Merge pull request #\d+.*?from\s/, '').replace(/\s*sync.*$/i, '');
+                  }
+                  return msg.length > 10 ? msg : '';
+                })
+                .filter(m => m.length > 0)
+                .map(m => `✓ ${m}`)
+                .join('<br/>')
+              }
+              </p>
               
-              <p class="article-text">For detailed information about these updates, refer to the official <a href="https://learn.microsoft.com/en-us/azure/azure-local/" target="_blank">Azure Local documentation</a>.</p>
+              <p class="article-text">For comprehensive information, visit the <a href="https://learn.microsoft.com/en-us/azure/azure-local/" target="_blank">Azure Local documentation</a>.</p>
               `.trim()
             };
             

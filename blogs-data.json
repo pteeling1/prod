@@ -1,6 +1,15 @@
 {
   "auto_posts": [
     {
+      "id": "auto-2026-02-04-uf5vjcb1i",
+      "title": "Azure Local Documentation Update — February 4",
+      "subtitle": "Azure Local documentation improvements",
+      "date": "2026-02-04",
+      "content": "<p class=\"article-text\">Azure Local documentation has been updated. <strong>Merge pull request #4136 from MicrosoftDocs/main639058251872966003sync_temp</strong></p><p class=\"article-text\">Review the latest changes to ensure your infrastructure deployments remain aligned with current best practices and requirements.</p>",
+      "source": "Azure Local Docs Monitor",
+      "auto_generated": true
+    },
+    {
       "id": "auto-2026-02-04-0cptb1xf5",
       "title": "Azure Local Documentation Update — February 4",
       "subtitle": "Azure Local documentation improvements",

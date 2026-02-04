@@ -1,0 +1,297 @@
+name: Azure Local Blog Generator
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 9 * * 1'
+
+jobs:
+  generate-blog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Fetch Azure Local documentation changes
+        id: fetch-commits
+        run: |
+          SINCE_DATE=$(date -u -d "7 days ago" +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Fetch all commits from past 7 days
+          RESPONSE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${SINCE_DATE}&per_page=100")
+          
+          # Filter for Azure Local-related commits
+          FILTERED=$(echo "$RESPONSE" | jq -c '[.[] | select(.commit.message | test("azure.local|Azure.Local|deployment|upgrade", "i"))] | .[0:1]')
+          
+          # If we found a commit, fetch its full details including diff
+          if [ "$(echo "$FILTERED" | jq 'length')" -gt "0" ]; then
+            SHA=$(echo "$FILTERED" | jq -r '.[0].sha')
+            
+            # Get full commit with files and patches
+            FULL_COMMIT=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits/$SHA")
+            
+            # Extract the data we need
+            COMMIT_DATA=$(echo "$FULL_COMMIT" | jq -c '{
+              sha: .sha,
+              message: .commit.message,
+              author: .commit.author.name,
+              date: .commit.author.date,
+              files: [.files[] | {filename, additions, deletions, patch}]
+            }')
+            
+            echo "commit_json<<EOFCOMMIT" >> $GITHUB_OUTPUT
+            echo "$COMMIT_DATA" >> $GITHUB_OUTPUT
+            echo "EOFCOMMIT" >> $GITHUB_OUTPUT
+          else
+            echo "commit_json={}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Generate blog post with Claude
+        id: generate-blog
+        run: |
+          # Create Node.js script to call Claude
+          cat > /tmp/blog-generator.js << 'EOFJS'
+          const https = require('https');
+          const fs = require('fs');
+          
+          async function callClaudeAPI(prompt) {
+            return new Promise((resolve, reject) => {
+              const data = JSON.stringify({
+                model: "claude-3-5-sonnet",
+                messages: [{ role: "user", content: prompt }],
+                max_tokens: 1024,
+                temperature: 0.7
+              });
+          
+              const options = {
+                hostname: 'api.github.com',
+                path: '/models/chat/completions',
+                method: 'POST',
+                headers: {
+                  'Authorization': 'Bearer ' + process.env.GITHUB_TOKEN,
+                  'Content-Type': 'application/json',
+                  'Content-Length': Buffer.byteLength(data)
+                },
+                timeout: 30000
+              };
+          
+              const req = https.request(options, (res) => {
+                let body = '';
+                res.on('data', chunk => body += chunk);
+                res.on('end', () => {
+                  if (res.statusCode !== 200) {
+                    reject(new Error(`API Error ${res.statusCode}: ${body}`));
+                  } else {
+                    try {
+                      const parsed = JSON.parse(body);
+                      const content = parsed.choices?.[0]?.message?.content;
+                      if (!content) throw new Error('No content in response');
+                      resolve(content);
+                    } catch (e) {
+                      reject(new Error(`Parse error: ${e.message}`));
+                    }
+                  }
+                });
+              });
+          
+              req.on('error', reject);
+              req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('API timeout'));
+              });
+              
+              req.write(data);
+              req.end();
+            });
+          }
+          
+          function buildPrompt(commitData) {
+            const files = commitData.files || [];
+            const filesInfo = files
+              .map(f => `- ${f.filename}: +${f.additions} -${f.deletions}`)
+              .join('\n');
+            
+            const diffs = files
+              .slice(0, 3)
+              .map(f => f.patch || '')
+              .filter(p => p)
+              .join('\n\n')
+              .slice(0, 2000);
+            
+            return `You are an Azure Local infrastructure expert writing technical blog posts for operations teams.
+
+Analyze this documentation change and write a 90-120 word blog post for ops teams:
+
+**Commit Message:**
+${commitData.message}
+
+**Files Changed:**
+${filesInfo}
+
+**Actual Changes (Diff Preview):**
+${diffs}
+
+**Requirements:**
+1. Explain what changed and the ops impact
+2. Be specific - reference actual file changes, new fields, removed steps, etc.
+3. Mention any required actions or configuration changes
+4. Use technical language - assume reader is experienced ops engineer
+5. Format: Plain text paragraphs, no markdown`;
+          }
+          
+          async function run() {
+            const commitJson = process.env.COMMIT_DATA;
+            const commitData = commitJson ? JSON.parse(commitJson) : null;
+            
+            if (!commitData || !commitData.sha) {
+              console.log(JSON.stringify({
+                id: 'auto-' + new Date().toISOString().split('T')[0] + '-none',
+                title: 'Azure Local Monitor',
+                subtitle: 'No changes found',
+                date: new Date().toISOString().split('T')[0],
+                content: '<p class="article-text">No Azure Local documentation updates found this week.</p>',
+                source: 'Azure Local Blog Monitor',
+                auto_generated: true,
+                claude_generated: false
+              }));
+              return;
+            }
+            
+            const blogDate = new Date().toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            
+            try {
+              const prompt = buildPrompt(commitData);
+              console.error(`Calling Claude with prompt length: ${prompt.length}`);
+              
+              const blogContent = await callClaudeAPI(prompt);
+              console.error(`Received response: ${blogContent.length} chars`);
+              
+              // Format response as HTML paragraphs
+              const paragraphs = blogContent
+                .split('\n\n')
+                .filter(p => p.trim())
+                .map(p => `<p class="article-text">${p.trim()}</p>`)
+                .join('');
+              
+              const htmlContent = paragraphs + 
+                `<p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${commitData.sha.slice(0, 7)}">View commit on GitHub →</a></p>`;
+              
+              console.log(JSON.stringify({
+                id: 'auto-' + new Date().toISOString().split('T')[0] + '-' + Math.random().toString(36).slice(2, 10),
+                title: `Azure Local Update — ${blogDate}`,
+                subtitle: 'Documentation changes',
+                date: new Date().toISOString().split('T')[0],
+                content: htmlContent,
+                source: 'Azure Local Blog Monitor',
+                auto_generated: true,
+                claude_generated: true
+              }));
+            } catch (error) {
+              console.error(`Claude API error: ${error.message}`);
+              
+              // Fallback: create basic post from commit message
+              const commitMsg = commitData.message.split('\n')[0];
+              const filesInfo = (commitData.files || [])
+                .slice(0, 3)
+                .map(f => `${f.filename}`)
+                .join(', ');
+              
+              const content = `<p class="article-text"><strong>${commitMsg}</strong></p>` +
+                `<p class="article-text">Files modified: ${filesInfo}</p>` +
+                `<p class="article-text">Review the Azure Local documentation for latest deployment and configuration updates.</p>` +
+                `<p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${commitData.sha.slice(0, 7)}">View commit →</a></p>`;
+              
+              console.log(JSON.stringify({
+                id: 'auto-' + new Date().toISOString().split('T')[0] + '-' + Math.random().toString(36).slice(2, 10),
+                title: `Azure Local Update — ${blogDate}`,
+                subtitle: 'Documentation changes',
+                date: new Date().toISOString().split('T')[0],
+                content: content,
+                source: 'Azure Local Blog Monitor',
+                auto_generated: true,
+                claude_generated: false
+              }));
+            }
+          }
+          
+          run().catch(err => {
+            console.error(`Fatal error: ${err.message}`);
+            process.exit(1);
+          });
+          EOFJS
+          
+          # Run the blog generator
+          node /tmp/blog-generator.js > /tmp/blog-output.txt 2> /tmp/blog-error.txt
+          EXIT_CODE=$?
+          
+          echo "=== Blog Generator Output ==="
+          cat /tmp/blog-output.txt
+          echo ""
+          echo "=== Blog Generator Errors ==="
+          cat /tmp/blog-error.txt
+          echo ""
+          echo "Exit code: $EXIT_CODE"
+          
+          # Extract the JSON blog post from stdout
+          if [ $EXIT_CODE -eq 0 ] && [ -s /tmp/blog-output.txt ]; then
+            BLOG_JSON=$(cat /tmp/blog-output.txt | tail -1)
+            echo "blog_post=$BLOG_JSON" >> $GITHUB_OUTPUT
+            echo "Blog post generated successfully"
+          else
+            echo "Blog generation failed or produced no output"
+            exit 1
+          fi
+        env:
+          COMMIT_DATA: ${{ steps.fetch-commits.outputs.commit_json }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update blogs-data.json
+        if: success()
+        run: |
+          BLOG_JSON='${{ steps.generate-blog.outputs.blog_post }}'
+          
+          echo "=== Received blog JSON ==="
+          echo "$BLOG_JSON"
+          echo ""
+          
+          # Validate JSON
+          if ! echo "$BLOG_JSON" | jq empty 2>/dev/null; then
+            echo "ERROR: Invalid JSON received"
+            echo "Raw: $BLOG_JSON"
+            exit 1
+          fi
+          
+          # Verify blogs-data.json exists and has proper structure
+          if [ ! -f blogs-data.json ]; then
+            echo '{"auto_posts": []}' > blogs-data.json
+          fi
+          
+          # Add new post to top of auto_posts array
+          jq ".auto_posts |= [$(echo "$BLOG_JSON")] + ." blogs-data.json > blogs-data.json.tmp
+          mv blogs-data.json.tmp blogs-data.json
+          
+          echo "Updated blogs-data.json"
+          echo "Total posts: $(jq '.auto_posts | length' blogs-data.json)"
+          
+          # Commit and push if changed
+          if git diff --quiet blogs-data.json; then
+            echo "No changes to blogs-data.json"
+          else
+            git config user.email "bot@example.com"
+            git config user.name "Blog Bot"
+            git add blogs-data.json
+            git commit -m "Auto-generated blog post from Azure docs update"
+            git push origin main
+            echo "Successfully pushed blog post"
+          fi

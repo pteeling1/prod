@@ -1,3 +1,13 @@
 {
-  "auto_posts": []
+  "auto_posts": [
+    {
+      "id": "auto-2026-02-04-0cptb1xf5",
+      "title": "Azure Local Documentation Update — February 4",
+      "subtitle": "Azure Local documentation improvements",
+      "date": "2026-02-04",
+      "content": "<p class=\"article-text\"><strong>What changed:</strong></p>\n    \n    <ul style=\"margin-left: 20px; font-size: 14px; line-height: 1.8;\">\n    <li>(removed) - Create an Active Directory Lifecycle Manager (LCM) user account that's a member of the local Administrator group. For instructions, see [Prepare Active Directory for Azure Local deployment](../deploy/deployment-prep-active-directory.md).</li>\n<li>- Create an Active Directory Lifecycle Manager (LCM) user account that's a member of the local Administrator group. Make sure this account also has *Log on as a batch job* rights, as described in [Log on as a batch job](/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/log-on-as-a-batch-job). For instructions, see [Prepare Active Directory for Azure Local deployment](../deploy/deployment-prep-active-directory.md).</li>\n    </ul>\n    \n    \n    <p class=\"article-text\"><strong>📚 Updated pages:</strong></p>\n    <ul style=\"margin-left: 20px; font-size: 14px;\">\n    <li><a href=\"https://learn.microsoft.com/en-us/azure/azure-local/update/import-discover-updates-offline-23h2\" target=\"_blank\">import discover updates offline 23h2</a> <span style=\"color: #6b7280; font-size: 13px;\">(modified)</span></li>\n<li><a href=\"https://learn.microsoft.com/en-us/azure/azure-local/upgrade/install-solution-upgrade-azure-resource-manager-template\" target=\"_blank\">install solution upgrade azure resource manager template</a> <span style=\"color: #6b7280; font-size: 13px;\">(modified)</span></li>\n    </ul>\n    \n    <p class=\"article-text\"><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/commit/792bd0a\" target=\"_blank\">View detailed diff on GitHub →</a></p>",
+      "source": "Azure Local Docs Monitor",
+      "auto_generated": true
+    }
+  ]
 }

@@ -1,3 +1,13 @@
 {
-  "auto_posts": []
+  "auto_posts": [
+    {
+      "id": "auto-2026-02-04-tait3cc11",
+      "title": "Azure Local Update — February 4",
+      "subtitle": "Azure Local docs update",
+      "date": "2026-02-04",
+      "content": "<p class=\"article-text\"><strong>Merge pull request #4136 from MicrosoftDocs/main639058251872966003sync_temp</strong></p><p class=\"article-text\">Documentation updated. Review changes for latest requirements.</p><p class=\"article-text\"><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/commit/792bd0a\">View →</a></p>",
+      "source": "Azure Local Docs Monitor",
+      "auto_generated": true
+    }
+  ]
 }

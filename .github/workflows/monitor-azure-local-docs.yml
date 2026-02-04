@@ -5,12 +5,6 @@ on:
     # Run every Monday at 9:00 AM UTC
     - cron: '0 9 * * 1'
   workflow_dispatch: # Allow manual trigger
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/monitor-azure-local-docs.yml'
-      - '.github/WORKFLOW_TEST.md'
 
 jobs:
   monitor-and-generate:

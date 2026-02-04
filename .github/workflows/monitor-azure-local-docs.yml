@@ -19,9 +19,17 @@ jobs:
         run: |
           SINCE_DATE=$(date -u -d "7 days ago" +"%Y-%m-%dT%H:%M:%SZ")
           RESPONSE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${SINCE_DATE}&per_page=5")
+            "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${SINCE_DATE}&per_page=100")
           
-          echo "commits=$(echo "$RESPONSE" | jq -c '.' )" >> $GITHUB_OUTPUT
+          # Filter for Azure Local documentation changes (azure-local or azure/local paths)
+          FILTERED=$(echo "$RESPONSE" | jq -c '[.[] | select(.commit.message | contains("azure-local") or contains("Azure Local") or contains("azure/local"))]')
+          
+          # If no direct mentions, look for the files
+          if [ "$(echo "$FILTERED" | jq 'length')" == "0" ]; then
+            FILTERED=$(echo "$RESPONSE" | jq -c '[.[] | select(.commit.message | test("(deploy|upgrade|update|security|config)", "i"))]' | head -1)
+          fi
+          
+          echo "commits=$(echo "$FILTERED" | jq -c '.' )" >> $GITHUB_OUTPUT
       
       - name: Generate blog with Claude
         id: generate-blog
@@ -49,27 +57,45 @@ jobs:
                   'Content-Type': 'application/json',
                   'Content-Length': data.length,
                   'User-Agent': 'AzureLocalBlogGenerator'
-                }
+                },
+                timeout: 30000
               };
               
               const req = https.request(options, (res) => {
                 let body = '';
-                res.on('data', chunk => body += chunk);
+                let chunks = 0;
+                
+                res.on('data', chunk => {
+                  chunks++;
+                  body += chunk;
+                });
+                
                 res.on('end', () => {
                   try {
                     const parsed = JSON.parse(body);
+                    
+                    if (res.statusCode !== 200) {
+                      reject(new Error(`API error ${res.statusCode}: ${parsed.message || 'Unknown error'}`));
+                      return;
+                    }
+                    
                     if (parsed.choices && parsed.choices[0] && parsed.choices[0].message) {
                       resolve(parsed.choices[0].message.content);
                     } else {
-                      reject(new Error('No response from Claude'));
+                      reject(new Error('No choices in response'));
                     }
                   } catch (e) {
-                    reject(e);
+                    reject(new Error(`Parse error: ${e.message}`));
                   }
                 });
               });
               
               req.on('error', reject);
+              req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('API request timeout'));
+              });
+              
               req.write(data);
               req.end();
             });
@@ -85,12 +111,25 @@ jobs:
             const commit = commits[0];
             const title = 'Azure Local Documentation Update — ' + new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
             const message = commit.commit?.message || 'Updated documentation';
+            const firstLine = message.split('\n')[0];
             
             try {
-              const prompt = `You are a technical blog writer for Azure infrastructure. Write a brief, professional blog post (100-150 words) about this Azure documentation update:\n\nCommit: ${message.split('\\n')[0]}\n\nFocus on: what changed, why it matters for operators, and what they should do. Be concise and actionable.`;
+              const prompt = `You are a technical blog writer specializing in Azure infrastructure. Write a concise technical blog post (80-120 words) for operations teams.
+
+Change: ${firstLine}
+
+Requirements:
+- Lead with the specific change or improvement
+- Explain operational impact (why teams should care)
+- Include 1-2 actionable next steps for operators
+- Use clear, direct language for cloud ops professionals
+- End with a link reference to view details on GitHub
+
+Format: Use short paragraphs separated by line breaks.`;
               
               const claudeContent = await callClaudeAPI(prompt);
-              const content = `<p class="article-text"><strong>Update Summary:</strong></p><p class="article-text">${claudeContent.replace(/\\n/g, '</p><p class="article-text">')}</p><p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${commit.sha.slice(0, 7)}" target="_blank">View on GitHub →</a></p>`;
+              const formattedContent = claudeContent.split('\n').filter(line => line.trim()).map(line => `<p class="article-text">${line.trim()}</p>`).join('');
+              const content = `${formattedContent}<p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${commit.sha.slice(0, 7)}" target="_blank">View on GitHub →</a></p>`;
               
               const blogPost = {
                 id: 'auto-' + new Date().toISOString().split('T')[0] + '-' + Math.random().toString(36).substr(2, 9),
@@ -106,7 +145,7 @@ jobs:
               console.log(JSON.stringify(blogPost));
             } catch (error) {
               // Fallback: generate basic blog from commit
-              const content = `<p class="article-text"><strong>${message.split('\\n')[0]}</strong></p><p class="article-text">Azure Local documentation has been updated. Review the latest changes to ensure your infrastructure deployments remain aligned with current best practices and requirements.</p>`;
+              const content = `<p class="article-text"><strong>${firstLine}</strong></p><p class="article-text">Azure Local documentation has been updated. Review the latest changes to ensure your infrastructure deployments remain current and secure.</p><p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${commit.sha.slice(0, 7)}" target="_blank">View on GitHub →</a></p>`;
               
               const blogPost = {
                 id: 'auto-' + new Date().toISOString().split('T')[0] + '-' + Math.random().toString(36).substr(2, 9),

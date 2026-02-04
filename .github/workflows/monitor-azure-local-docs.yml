@@ -128,8 +128,8 @@ jobs:
           COMMIT_DETAIL=$(curl -s "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits/$LATEST_SHA" \
             -H "Accept: application/vnd.github.v3+json")
           
-          # Extract files with their stats and patches
-          FILE_CHANGES=$(echo "$COMMIT_DETAIL" | jq -r '.files[]? | select(.status != "deleted") | 
+          # Extract files with their stats and patches - FILTER FOR AZURE-LOCAL ONLY
+          FILE_CHANGES=$(echo "$COMMIT_DETAIL" | jq -r '.files[]? | select(.filename | startswith("azure-local/")) | select(.status != "deleted") | 
             "FILE:\(.filename)\nSTATUS:\(.status)\nADDITIONS:\(.additions)\nDELETIONS:\(.deletions)\nPATCH_START\n\(.patch // "")\nPATCH_END\n---"' 2>/dev/null)
           
           # Store file changes for Node.js to parse
@@ -140,8 +140,8 @@ jobs:
           echo "COMMIT_MESSAGE:" >> "$TEMP_DIFFS"
           echo "$COMMIT_DETAIL" | jq -r '.commit.message' >> "$TEMP_DIFFS"
           
-          # Store GitHub URLs for files
-          FILES_JSON=$(echo "$COMMIT_DETAIL" | jq -r '.files[]? | select(.status != "deleted") | 
+          # Store GitHub URLs for files - FILTER FOR AZURE-LOCAL ONLY
+          FILES_JSON=$(echo "$COMMIT_DETAIL" | jq -r '.files[]? | select(.filename | startswith("azure-local/")) | select(.status != "deleted") | 
             {filename: .filename, url: "https://github.com/MicrosoftDocs/azure-stack-docs/blob/'$LATEST_SHA'/\(.filename)", additions: .additions, deletions: .deletions}' 2>/dev/null)
           
           echo "$FILES_JSON" >> "$TEMP_DIFFS"
@@ -150,8 +150,8 @@ jobs:
           DIFFS_FILE="${RUNNER_TEMP}/diffs.txt"
           cp "$TEMP_DIFFS" "$DIFFS_FILE"
           
-          echo "📁 Files changed in commit:"
-          echo "$COMMIT_DETAIL" | jq -r '.files[]? | select(.status != "deleted") | 
+          echo "📁 Files changed in commit (Azure Local only):"
+          echo "$COMMIT_DETAIL" | jq -r '.files[]? | select(.filename | startswith("azure-local/")) | select(.status != "deleted") | 
             "  • \(.filename) (\(.status): +\(.additions) -\(.deletions))"' 2>/dev/null
           echo ""
           
@@ -290,7 +290,15 @@ jobs:
               });
             }
             
-            // Parse JSON file links from diffs (added at end)
+            // Filter to only Azure Local files (remove operator-nexus and other unrelated paths)
+            files = files.filter(f => f.name && f.name.startsWith('azure-local/'));
+            
+            // If no Azure Local files changed, skip blog post generation
+            if (files.length === 0) {
+              console.log('⚠️ No Azure Local files found in commit (commit may affect other products like Operator Nexus). Skipping blog post.');
+              process.exit(0);
+            }
+            
             let jsonMatch = diffs.match(/\{"filename".*?\}\s*$/ms);
             if (jsonMatch) {
               try {

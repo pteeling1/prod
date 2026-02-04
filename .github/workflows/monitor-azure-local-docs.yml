@@ -21,15 +21,14 @@ jobs:
           RESPONSE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${SINCE_DATE}&per_page=100")
           
-          # Filter for Azure Local documentation changes (azure-local or azure/local paths)
+          # Filter for Azure Local documentation changes
           FILTERED=$(echo "$RESPONSE" | jq -c '[.[] | select(.commit.message | contains("azure-local") or contains("Azure Local") or contains("azure/local"))]')
           
-          # If no direct mentions, look for the files
+          # If no direct mentions, get first matching deployment/config commit
           if [ "$(echo "$FILTERED" | jq 'length')" == "0" ]; then
-            FILTERED=$(echo "$RESPONSE" | jq -c '[.[] | select(.commit.message | test("(deploy|upgrade|update|security|config)", "i"))]' | head -1)
+            FILTERED=$(echo "$RESPONSE" | jq '[.[] | select(.commit.message | test("(deploy|upgrade|update|security|config)", "i"))] | .[0:1]' -c)
           fi
           
-          echo "DEBUG: FILTERED commits: $FILTERED"
           echo "commits=$(echo "$FILTERED" | jq -c '.' )" >> $GITHUB_OUTPUT
       
       - name: Generate blog with Claude
@@ -81,9 +80,7 @@ jobs:
           }
           
           async function run() {
-            console.log('DEBUG: COMMITS_DATA env: ' + (process.env.COMMITS_DATA || 'EMPTY'));
             const commits = JSON.parse(process.env.COMMITS_DATA || '[]');
-            console.log('DEBUG: Parsed commits length: ' + (commits ? commits.length : 'null'));
             if (!commits || !commits.length) {
               console.log(JSON.stringify({
                 id: 'auto-' + new Date().toISOString().slice(0,10) + '-none',

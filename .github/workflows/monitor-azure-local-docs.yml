@@ -315,146 +315,49 @@ jobs:
               }
             }
             
-            // Extract actual changes from patches for meaningful summaries
-            function extractChangesSummary(patches) {
+            // Extract actual changes from patches - REAL CHANGES, not generic summaries
+            function extractActualChanges(patches) {
               const changes = [];
               const patchLines = patches.split('\n');
-              let currentSection = '';
-              let addedLines = [];
-              let removedLines = [];
-              let contextLines = [];
               
-              for (const line of patchLines) {
-                // Track section headers
-                if (line.startsWith('+##') || line.startsWith('+###')) {
-                  if (addedLines.length > 0) {
-                    changes.push(`✓ Added "${currentSection}" section`);
-                  }
-                  currentSection = line.replace(/^\+#+\s*/, '').trim();
-                  addedLines = [];
-                  removedLines = [];
-                } else if (line.startsWith('+') && !line.startsWith('+++')) {
-                  addedLines.push(line.substring(1).trim());
-                } else if (line.startsWith('-') && !line.startsWith('---')) {
-                  removedLines.push(line.substring(1).trim());
-                } else if (line.startsWith(' ') && !line.startsWith('   ')) {
-                  contextLines.push(line.substring(1).trim());
-                }
-              }
-              
-              // Extract meaningful changed requirements/steps
               for (let i = 0; i < patchLines.length; i++) {
                 const line = patchLines[i];
                 
-                // Look for added requirements or new steps
+                // Look for added lines that contain requirements or important changes
                 if (line.startsWith('+') && !line.startsWith('+++')) {
                   const content = line.substring(1).trim();
                   
-                  // Extract meaningful keywords from added content
-                  if (content.match(/require|must|should|need|account|rights|permission|group|role/i)) {
-                    // Find corresponding removed line to show what changed
-                    const removedIdx = removedLines.findIndex(r => 
-                      r.toLowerCase().includes('account') || r.toLowerCase().includes('create an') || r.toLowerCase().includes('administrator')
-                    );
-                    
-                    if (removedIdx >= 0) {
-                      const removed = removedLines[removedIdx];
-                      const added = content;
-                      
-                      // Check if this is an update vs new requirement
-                      if (added.length > removed.length) {
-                        // Extract the difference
-                        const diff = added.substring(removed.length).trim();
-                        if (diff.length > 10) {
-                          changes.push(`✓ Updated: ${diff.substring(0, 80)}`);
-                        }
-                      } else if (!removed.includes(content)) {
-                        changes.push(`✓ New requirement: ${added.substring(0, 80)}`);
-                      }
-                    } else if (content.length > 30) {
-                      changes.push(`✓ ${content.substring(0, 85)}`);
-                    }
+                  // Skip empty lines and markdown formatting
+                  if (content.length < 5 || content.match(/^[#\-*]+$/)) continue;
+                  
+                  // Capture meaningful additions
+                  if (content.match(/require|must|should|need|account|rights|permission|group|role|batch|administrator|credential|login|log\s+on/i)) {
+                    changes.push(content);
+                  }
+                }
+                
+                // Also capture removed lines to show what was replaced
+                if (line.startsWith('-') && !line.startsWith('---')) {
+                  const content = line.substring(1).trim();
+                  if (content.length < 5 || content.match(/^[#\-*]+$/)) continue;
+                  if (content.match(/require|must|should|need|account|rights|permission|group|role|batch|administrator/i)) {
+                    changes.push(`(removed) ${content}`);
                   }
                 }
               }
               
-              // Extract specific changes like deprecated content
-              const deprecatedMatch = [...patchLines].find(l => l.includes('deprecated') || l.includes('no longer'));
-              if (deprecatedMatch && deprecatedMatch.startsWith('-')) {
-                changes.push(`✓ Removed deprecated content`);
-              }
+              // Remove duplicates and limit to most relevant
+              const uniqueChanges = [...new Set(changes)].filter(c => c && c.length > 3);
               
-              // Remove duplicates
-              const uniqueChanges = [...new Set(changes)].filter(c => c && c.length > 5);
-              
-              return uniqueChanges.length > 0 ? uniqueChanges.slice(0, 6) : ['✓ Documentation updated with improvements'];
+              return uniqueChanges.slice(0, 5);
             }
             
             // Collect all patches to analyze
             const allPatches = diffs.split('PATCH_START').slice(1).map(p => p.split('PATCH_END')[0]).join('\n');
-            const changesSummary = extractChangesSummary(allPatches);
+            const actualChanges = extractActualChanges(allPatches);
             
             // Remove duplicates from topics
             keyTopics = [...new Set(keyTopics)].filter(t => t && t.length > 2).slice(0, 5);
-            
-            console.log(`Files changed: ${files.length}`);
-            files.slice(0, 5).forEach(f => {
-              console.log(`  📄 ${f.name} (${f.status}: +${f.additions} -${f.deletions})`);
-            });
-            console.log(`Key topics extracted: ${keyTopics.length}`);
-            keyTopics.forEach(t => console.log(`  • ${t}`));
-            console.log(`Changes identified: ${changesSummary.length}`);
-            changesSummary.forEach(c => console.log(`  ${c}`));
-            console.log('');
-            
-            // Smart heuristic analysis without API calls
-            function analyzeChangesHeuristically() {
-              const insights = [];
-              
-              // 1. Detect new files (feature additions)
-              const newFiles = files.filter(f => f.status === 'added');
-              if (newFiles.length > 0) {
-                const newFilenames = newFiles.map(f => {
-                  const parts = f.name.split('/');
-                  return parts[parts.length - 1].replace(/\.md$/, '').replace(/-/g, ' ');
-                });
-                const featureName = newFilenames.join(', ');
-                insights.push(`Microsoft is investing in ${featureName} as a strategic capability for Azure Local. This indicates their commitment to strengthening ${keyTopics[0]?.toLowerCase() || 'cloud infrastructure'}.`);
-              }
-              
-              // 2. Detect operational requirement changes
-              const hasPrivilegeChanges = allPatches.match(/rights|permission|privilege|batch job|administrator/gi);
-              if (hasPrivilegeChanges) {
-                insights.push(`Azure Local is tightening its operational requirements. These changes suggest Microsoft is responding to real-world operational challenges, hardening security postures, or streamlining deployment workflows based on customer feedback.`);
-              }
-              
-              // 3. Detect deprecation/removal patterns
-              const hasDeprecations = changesSummary.some(c => c.includes('deprecated') || c.includes('Removed'));
-              if (hasDeprecations) {
-                insights.push(`Microsoft is cleaning up legacy approaches in Azure Local. Deprecated features being removed suggests the platform is standardizing on modern best practices—customers using older patterns will need to modernize their deployments.`);
-              }
-              
-              // 4. Detect multi-file, high-impact changes
-              if (files.length >= 4 && files.reduce((sum, f) => sum + f.additions, 0) > 100) {
-                const changeScope = files.length > 6 ? 'major architectural' : 'focused';
-                insights.push(`This ${changeScope} update indicates Microsoft is making significant strategic changes to Azure Local. The broad scope suggests either a major feature launch, fundamental operational redesign, or response to widespread customer needs.`);
-              }
-              
-              // 5. Detect infrastructure/networking focus
-              const hasNetworkingKeywords = allPatches.match(/network|interconnect|nni|firewall|routing|vpc|segment/gi);
-              if (hasNetworkingKeywords) {
-                insights.push(`Microsoft is investing heavily in networking capabilities for Azure Local. This signals support for complex hybrid cloud topologies—indicating they're targeting enterprises with multi-site deployments and sophisticated network requirements.`);
-              }
-              
-              // 6. Detect upgrade/deployment process changes
-              if (keyTopics.some(t => t.match(/upgrade|deploy|install/i))) {
-                insights.push(`Azure Local deployment procedures are evolving. These changes reflect Microsoft's learning from real-world deployments—likely addressing pain points, improving reliability, or enabling new deployment scenarios.`);
-              }
-              
-              return insights.length > 0 ? [insights[0]] : ['The Azure Local platform is evolving. Check the latest repository changes for details.'];
-            }
-            
-            const heuristicAnalysis = analyzeChangesHeuristically();
             
             // Generate blog post with SPECIFIC actual changes
             const latestSha = commitMessages[0].sha;
@@ -462,13 +365,14 @@ jobs:
               ? keyTopics.slice(0, 2).join(' • ')
               : 'Azure Local documentation improvements';
             
-            // Build file links HTML with proper GitHub URLs
+            // Build file links HTML with Learn URLs instead of GitHub
             const fileLinksHtml = files
               .slice(0, 5)
               .map(f => {
-                const filePath = f.name;
-                const displayName = filePath.split('/').pop();
-                return `<li><a href="https://github.com/MicrosoftDocs/azure-stack-docs/blob/${latestSha}/${filePath}" target="_blank">${displayName}</a> <span style="color: #6b7280; font-size: 13px;">(${f.status}: +${f.additions}/-${f.deletions})</span></li>`;
+                const filePath = f.name.replace(/\.md$/, '');
+                const displayName = filePath.split('/').pop().replace(/-/g, ' ');
+                const learnUrl = `https://learn.microsoft.com/en-us/azure/${filePath}`;
+                return `<li><a href="${learnUrl}" target="_blank">${displayName}</a> <span style="color: #6b7280; font-size: 13px;">(${f.status})</span></li>`;
               })
               .join('\n');
             
@@ -486,16 +390,19 @@ jobs:
               title: 'Azure Local Documentation Update — ' + new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
               subtitle: subtitle,
               content: `
-              ${heuristicAnalysis && heuristicAnalysis[0] ? `
-              <p class="article-text">${heuristicAnalysis[0]}</p>
-              ` : '<p class="article-text">The Azure Local documentation has been updated. Check the repository for details.</p>'}
+              <p class="article-text"><strong>What changed:</strong></p>
+              ${actualChanges.length > 0 ? `
+              <ul style="margin-left: 20px; font-size: 14px; line-height: 1.8;">
+              ${actualChanges.map(change => `<li>${change}</li>`).join('\n')}
+              </ul>
+              ` : '<p class="article-text">Documentation was updated. Check the Learn pages for details.</p>'}
               
-              <p class="article-text"><strong>📄 Updated files:</strong></p>
+              <p class="article-text"><strong>📚 Updated pages:</strong></p>
               <ul style="margin-left: 20px; font-size: 14px;">
               ${fileLinksHtml}
               </ul>
               
-              <p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${latestSha}" target="_blank">View all changes on GitHub →</a></p>
+              <p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${latestSha}" target="_blank">View detailed diff on GitHub →</a></p>
               `.trim()
             };
             

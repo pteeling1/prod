@@ -75,7 +75,7 @@ jobs:
                     const parsed = JSON.parse(body);
                     
                     if (res.statusCode !== 200) {
-                      reject(new Error(`API error ${res.statusCode}: ${parsed.message || 'Unknown error'}`));
+                      reject(new Error('API error ' + res.statusCode + ': ' + (parsed.message || 'Unknown error')));
                       return;
                     }
                     
@@ -85,7 +85,7 @@ jobs:
                       reject(new Error('No choices in response'));
                     }
                   } catch (e) {
-                    reject(new Error(`Parse error: ${e.message}`));
+                    reject(new Error('Parse error: ' + e.message));
                   }
                 });
               });
@@ -114,22 +114,11 @@ jobs:
             const firstLine = message.split('\n')[0];
             
             try {
-              const prompt = `You are a technical blog writer specializing in Azure infrastructure. Write a concise technical blog post (80-120 words) for operations teams.
-
-Change: ${firstLine}
-
-Requirements:
-- Lead with the specific change or improvement
-- Explain operational impact (why teams should care)
-- Include 1-2 actionable next steps for operators
-- Use clear, direct language for cloud ops professionals
-- End with a link reference to view details on GitHub
-
-Format: Use short paragraphs separated by line breaks.`;
+              const prompt = "You are a technical blog writer specializing in Azure infrastructure. Write a concise technical blog post (80-120 words) for operations teams.\n\nChange: " + firstLine + "\n\nRequirements:\n- Lead with the specific change or improvement\n- Explain operational impact (why teams should care)\n- Include 1-2 actionable next steps for operators\n- Use clear, direct language for cloud ops professionals\n- End with a link reference to view details on GitHub\n\nFormat: Use short paragraphs separated by line breaks.";
               
               const claudeContent = await callClaudeAPI(prompt);
-              const formattedContent = claudeContent.split('\n').filter(line => line.trim()).map(line => `<p class="article-text">${line.trim()}</p>`).join('');
-              const content = `${formattedContent}<p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${commit.sha.slice(0, 7)}" target="_blank">View on GitHub →</a></p>`;
+              const formattedContent = claudeContent.split('\n').filter(line => line.trim()).map(line => '<p class="article-text">' + line.trim() + '</p>').join('');
+              const content = formattedContent + '<p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/' + commit.sha.slice(0, 7) + '" target="_blank">View on GitHub →</a></p>';
               
               const blogPost = {
                 id: 'auto-' + new Date().toISOString().split('T')[0] + '-' + Math.random().toString(36).substr(2, 9),
@@ -145,7 +134,7 @@ Format: Use short paragraphs separated by line breaks.`;
               console.log(JSON.stringify(blogPost));
             } catch (error) {
               // Fallback: generate basic blog from commit
-              const content = `<p class="article-text"><strong>${firstLine}</strong></p><p class="article-text">Azure Local documentation has been updated. Review the latest changes to ensure your infrastructure deployments remain current and secure.</p><p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${commit.sha.slice(0, 7)}" target="_blank">View on GitHub →</a></p>`;
+              const content = '<p class="article-text"><strong>' + firstLine + '</strong></p><p class="article-text">Azure Local documentation has been updated. Review the latest changes to ensure your infrastructure deployments remain current and secure.</p><p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/' + commit.sha.slice(0, 7) + '" target="_blank">View on GitHub →</a></p>';
               
               const blogPost = {
                 id: 'auto-' + new Date().toISOString().split('T')[0] + '-' + Math.random().toString(36).substr(2, 9),

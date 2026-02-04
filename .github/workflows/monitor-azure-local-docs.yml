@@ -169,37 +169,47 @@ jobs:
         run: |
           set +e
           
-          COMMITS='${{ steps.get-commits.outputs.commits }}'
+          # Write commits and file contents to files to avoid bash parsing issues
+          COMMITS_FILE="${RUNNER_TEMP}/commits.txt"
           FILE_CONTENTS_PATH='${{ steps.changed-files.outputs.file_contents_path }}'
           
+          echo '${{ steps.get-commits.outputs.commits }}' > "$COMMITS_FILE"
+          
           # Debug output
-          echo "DEBUG: Checking for file contents at: $FILE_CONTENTS_PATH"
+          echo "DEBUG: Commits file: $COMMITS_FILE"
+          echo "DEBUG: Commits file exists: $([ -f "$COMMITS_FILE" ] && echo 'yes' || echo 'no')"
+          echo "DEBUG: Commits lines: $(wc -l < "$COMMITS_FILE")"
+          echo "DEBUG: File contents path: $FILE_CONTENTS_PATH"
           echo "DEBUG: File exists: $([ -f "$FILE_CONTENTS_PATH" ] && echo 'yes' || echo 'no')"
-          
-          # Read file contents from the file (avoids bash parsing issues with special chars)
-          FILE_CONTENTS=""
-          if [ -f "$FILE_CONTENTS_PATH" ]; then
-            FILE_CONTENTS=$(cat "$FILE_CONTENTS_PATH")
-            echo "DEBUG: Read $(echo "$FILE_CONTENTS" | wc -c) bytes from file"
-          else
-            echo "WARNING: File contents file not found at $FILE_CONTENTS_PATH"
-          fi
-          
-          # Export it so node can access it
-          export FILE_CONTENTS
-          export COMMITS
-          export TEMP_POST_FILE=/tmp/blog-post.json
           
           # Use Node.js to generate blog post from commit data
           # Save to temp file so next step can read it
-          TEMP_POST=$(mktemp)
+          TEMP_POST="${RUNNER_TEMP}/blog-post-temp.json"
           
           node << 'NODEJS_EOF'
           const fs = require('fs');
           
           try {
-            const commits = process.env.COMMITS || '';
-            const fileContents = process.env.FILE_CONTENTS || '';
+            // Read commits from file
+            const commitsFile = process.env.COMMITS_FILE;
+            const fileContentsFile = process.env.FILE_CONTENTS_PATH;
+            
+            let commits = '';
+            let fileContents = '';
+            
+            if (fs.existsSync(commitsFile)) {
+              commits = fs.readFileSync(commitsFile, 'utf8');
+              console.log(`Read commits from file: ${commits.length} chars`);
+            } else {
+              console.log(`⚠️ Commits file not found: ${commitsFile}`);
+            }
+            
+            if (fs.existsSync(fileContentsFile)) {
+              fileContents = fs.readFileSync(fileContentsFile, 'utf8');
+              console.log(`Read file contents from file: ${fileContents.length} chars`);
+            } else {
+              console.log(`⚠️ File contents file not found: ${fileContentsFile}`);
+            }
             
             // Parse commits
             const commitLines = commits.split('\n').filter(line => line.trim());
@@ -277,7 +287,9 @@ jobs:
             
             // Write JSON to temp file so next step can read it
             const jsonOutput = JSON.stringify(blogPost);
-            fs.writeFileSync(process.env.TEMP_POST_FILE, jsonOutput);
+            const tempPostFile = process.env.TEMP_POST || '/tmp/blog-post-temp.json';
+            fs.writeFileSync(tempPostFile, jsonOutput);
+            console.log(`Wrote blog post to: ${tempPostFile}`);
             
             // Also log it for visibility
             console.log('═══════════════════════════════════════════════════════');
@@ -307,7 +319,9 @@ jobs:
           
           exit 0
         env:
-          TEMP_POST_FILE: ${{ runner.temp }}/blog-post.json
+          COMMITS_FILE: ${{ runner.temp }}/commits.txt
+          FILE_CONTENTS_PATH: ${{ steps.changed-files.outputs.file_contents_path }}
+          TEMP_POST: ${{ runner.temp }}/blog-post-temp.json
 
 
       - name: Update blogs-data.json

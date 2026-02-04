@@ -487,8 +487,12 @@ jobs:
               <p class="article-text">${heuristicAnalysis[0]}</p>
               ` : '<p class="article-text">The Azure Local documentation has been updated. Check the repository for details.</p>'}
               
-              <p class="article-text"><a href="${learnUrl}" target="_blank"><strong>📖 Read on Microsoft Learn →</strong></a></p>
-              <p class="article-text" style="font-size: 13px; color: #6b7280;">(<a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${latestSha}" target="_blank">View changes on GitHub</a>)</p>
+              <p class="article-text"><strong>📄 Updated files:</strong></p>
+              <ul style="margin-left: 20px; font-size: 14px;">
+              ${fileLinksHtml}
+              </ul>
+              
+              <p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${latestSha}" target="_blank">View all changes on GitHub →</a></p>
               `.trim()
             };
             

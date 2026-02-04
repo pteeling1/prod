@@ -1,0 +1,64 @@
+name: Azure Blog Monitor V2
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+      
+jobs:
+  generate-blog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Fetch Azure Local doc changes (DEBUG)
+        id: fetch-commits
+        run: |
+          SINCE_DATE=$(date -u -d "7 days ago" +"%Y-%m-%dT%H:%M:%SZ")
+          echo "Fetching commits since: $SINCE_DATE"
+          
+          RESPONSE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${SINCE_DATE}&per_page=100")
+          
+          echo "Total commits fetched: $(echo "$RESPONSE" | jq 'length')"
+          
+          # Filter for Azure Local documentation changes
+          FILTERED=$(echo "$RESPONSE" | jq -c '[.[] | select(.commit.message | contains("azure-local") or contains("Azure Local") or contains("azure/local"))]')
+          
+          echo "Filtered (Azure Local): $(echo "$FILTERED" | jq 'length')"
+          
+          # If no direct mentions, get first matching deployment/config commit
+          if [ "$(echo "$FILTERED" | jq 'length')" == "0" ]; then
+            echo "No Azure Local matches, trying fallback..."
+            FILTERED=$(echo "$RESPONSE" | jq '[.[] | select(.commit.message | test("(deploy|upgrade|update|security|config)", "i"))] | .[0:1]' -c)
+            echo "Fallback filtered: $(echo "$FILTERED" | jq 'length')"
+          fi
+          
+          # For the first matching commit, fetch full details including diff
+          if [ "$(echo "$FILTERED" | jq 'length')" -gt "0" ]; then
+            SHA=$(echo "$FILTERED" | jq -r '.[0].sha')
+            echo "Selected commit SHA: $SHA"
+            
+            FULL_COMMIT=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits/$SHA")
+            
+            echo "Full commit fetch status: $(echo "$FULL_COMMIT" | jq '.sha' 2>/dev/null)"
+            
+            # Add the full commit details to our output
+            COMMITS_OUTPUT=$(echo "$FULL_COMMIT" | jq -c '{sha: .sha, message: .commit.message, author: .commit.author.name, files: .files | map({filename, additions, deletions, patch})}')
+            echo "commits=$COMMITS_OUTPUT" >> $GITHUB_OUTPUT
+            
+            echo "Output set, length: $(echo "$COMMITS_OUTPUT" | wc -c)"
+          else
+            echo "No commits found at all"
+            echo "commits={}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Debug commits output
+        run: |
+          echo "commits=${{ steps.fetch-commits.outputs.commits }}"
+          echo "commits length: $(echo '${{ steps.fetch-commits.outputs.commits }}' | wc -c)"

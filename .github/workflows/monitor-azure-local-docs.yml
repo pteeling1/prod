@@ -408,39 +408,39 @@ jobs:
                   return parts[parts.length - 1].replace(/\.md$/, '').replace(/-/g, ' ');
                 });
                 const featureName = newFilenames.join(', ');
-                insights.push(`Microsoft is expanding Azure Local capabilities to support ${featureName}. This signals focus on ${keyTopics[0] || 'new deployment scenarios'}.`);
+                insights.push(`Microsoft is investing in ${featureName} as a strategic capability for Azure Local. This indicates their commitment to strengthening ${keyTopics[0]?.toLowerCase() || 'cloud infrastructure'}.`);
               }
               
               // 2. Detect operational requirement changes
               const hasPrivilegeChanges = allPatches.match(/rights|permission|privilege|batch job|administrator/gi);
               if (hasPrivilegeChanges) {
-                insights.push(`The update tightens operational requirements with additional security or execution privileges. This indicates automation workflow evolution and stricter account management for Azure Local operations.`);
+                insights.push(`Azure Local is tightening its operational requirements. These changes suggest Microsoft is responding to real-world operational challenges, hardening security postures, or streamlining deployment workflows based on customer feedback.`);
               }
               
               // 3. Detect deprecation/removal patterns
               const hasDeprecations = changesSummary.some(c => c.includes('deprecated') || c.includes('Removed'));
               if (hasDeprecations) {
-                insights.push(`Deprecated content removal signals Microsoft is consolidating the API surface and removing legacy patterns. This is part of the platform's maturation towards predictable, modern deployment methods.`);
+                insights.push(`Microsoft is cleaning up legacy approaches in Azure Local. Deprecated features being removed suggests the platform is standardizing on modern best practices—customers using older patterns will need to modernize their deployments.`);
               }
               
               // 4. Detect multi-file, high-impact changes
               if (files.length >= 4 && files.reduce((sum, f) => sum + f.additions, 0) > 100) {
-                const changeScope = files.length > 6 ? 'broad architectural' : 'focused feature';
-                insights.push(`This ${changeScope} update spanning ${files.length} files (+${files.reduce((sum, f) => sum + f.additions, 0)} additions) suggests significant capability expansion or operational process redesign.`);
+                const changeScope = files.length > 6 ? 'major architectural' : 'focused';
+                insights.push(`This ${changeScope} update indicates Microsoft is making significant strategic changes to Azure Local. The broad scope suggests either a major feature launch, fundamental operational redesign, or response to widespread customer needs.`);
               }
               
               // 5. Detect infrastructure/networking focus
               const hasNetworkingKeywords = allPatches.match(/network|interconnect|nni|firewall|routing|vpc|segment/gi);
               if (hasNetworkingKeywords) {
-                insights.push(`Enhanced networking documentation reflects Microsoft's push toward multi-site Azure Local deployments and advanced network integration patterns for hybrid cloud scenarios.`);
+                insights.push(`Microsoft is investing heavily in networking capabilities for Azure Local. This signals support for complex hybrid cloud topologies—indicating they're targeting enterprises with multi-site deployments and sophisticated network requirements.`);
               }
               
               // 6. Detect upgrade/deployment process changes
               if (keyTopics.some(t => t.match(/upgrade|deploy|install/i))) {
-                insights.push(`Updates to deployment procedures indicate Microsoft is refining the operational contract for Azure Local installations, likely in response to field experience and customer needs.`);
+                insights.push(`Azure Local deployment procedures are evolving. These changes reflect Microsoft's learning from real-world deployments—likely addressing pain points, improving reliability, or enabling new deployment scenarios.`);
               }
               
-              return insights.length > 0 ? [insights[0]] : ['Documentation updated with improvements to Azure Local operations.'];
+              return insights.length > 0 ? [insights[0]] : ['The Azure Local platform is evolving. Check the latest repository changes for details.'];
             }
             
             const heuristicAnalysis = analyzeChangesHeuristically();
@@ -466,36 +466,11 @@ jobs:
               title: 'Azure Local Documentation Update — ' + new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
               subtitle: subtitle,
               content: `
-              <p class="article-text">The Azure Local documentation has been updated with important changes affecting deployment, installation, and operational procedures.</p>
-              
               ${heuristicAnalysis && heuristicAnalysis[0] ? `
-              <p class="article-text"><strong>🔍 What This Means:</strong></p>
               <p class="article-text">${heuristicAnalysis[0]}</p>
-              ` : ''}
+              ` : '<p class="article-text">The Azure Local documentation has been updated. Check the repository for details.</p>'}
               
-              <p class="article-text"><strong>📋 What Changed:</strong></p>
-              <ul class="article-list">
-              ${changesSummary.slice(0, 6).map(c => `<li>${c}</li>`).join('\n')}
-              </ul>
-              
-              <p class="article-text"><strong>📂 Affected Documentation Files:</strong></p>
-              <ul class="article-list">
-              ${fileLinksHtml}
-              </ul>
-              
-              <p class="article-text"><strong>📊 Change Summary:</strong></p>
-              <p class="article-text">
-              This update spans <strong>${files.length} file(s)</strong> with <strong>+${files.reduce((sum, f) => sum + f.additions, 0)} total additions</strong> and <strong>-${files.reduce((sum, f) => sum + f.deletions, 0)} deletions</strong>. 
-              ${files.length === 1 
-                ? `The updated file covers: ${keyTopics.slice(0, 2).join(', ')}.` 
-                : `Key topics affected: ${keyTopics.slice(0, 3).join(', ')}.`}
-              </p>
-              
-              <p class="article-text"><strong>📖 Review Full Changes:</strong></p>
-              <ul class="article-list">
-              <li><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${latestSha}" target="_blank">View commit on GitHub →</a> (see all changes in this update)</li>
-              <li><a href="https://learn.microsoft.com/en-us/azure/azure-local/" target="_blank">Azure Local documentation →</a> (learn more)</li>
-              </ul>
+              <p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${latestSha}" target="_blank">View commit on GitHub →</a></p>
               `.trim()
             };
             

@@ -1,13 +1,3 @@
 {
-  "auto_posts": [
-    {
-      "id": "auto-001",
-      "title": "Azure Local Networking Architecture: Planning for Scale and Performance",
-      "subtitle": "Guidance on software-defined networking, NIC bonding, and cluster connectivity best practices updated",
-      "date": "2026-02-03",
-      "content": "<p class=\"article-text\">Azure Local deployments require careful planning around networking architecture—particularly when scaling beyond initial proof-of-concept environments. Recent Azure documentation updates address common questions around NIC bonding strategies, RDMA configuration, and multi-site connectivity patterns.</p><p class=\"article-text\"><strong>Key Updates:</strong></p><article-list><li><strong>NIC Bonding Best Practices:</strong> Guidance updated to reflect real-world deployments. For most production environments, traditional NIC teaming (LACP) provides adequate redundancy and performance. RDMA-capable deployments require separate, non-bonded NICs to preserve direct access to storage traffic.</li><li><strong>Cluster Connectivity Models:</strong> Azure Local documentation now explicitly distinguishes between single-site, multi-site, and hybrid connectivity patterns. Single-site clusters (all nodes in one rack or room) support simplified configurations. Multi-site scenarios require careful latency management—especially for stretched clusters running 23H2, which must migrate to non-stretched 24H2 architectures by April 2026.</li><li><strong>Network Performance Validation:</strong> New sections on measuring and validating network throughput and latency using built-in Azure Local tools. These diagnostics help identify bandwidth bottlenecks before they impact production workloads.</li><li><strong>Software-Defined Networking (SDN) Enablement:</strong> For customers leveraging Azure Local's SDN capabilities, the updated documentation clarifies how network adapters are reserved for compute vs. management plane usage, and how this affects overall node density calculations.</li></article-list><p class=\"article-text\">The underlying principle remains consistent: Azure Local networking should be designed with redundancy and future growth in mind. A typical three-node or four-node cluster benefits from dedicated management, storage, and VM traffic lanes—either through physical separation or intelligent VLAN tagging.</p><p class=\"article-text\">For detailed guidance, refer to the updated Azure Local planning documentation on networking and cluster design.</p>",
-      "source": "Azure Local Documentation",
-      "auto_generated": true
-    }
-  ]
+  "auto_posts": []
 }

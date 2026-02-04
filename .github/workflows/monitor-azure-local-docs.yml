@@ -28,19 +28,40 @@ jobs:
           echo "Querying MicrosoftDocs/azure-stack-docs since: $SINCE_DATE"
           
           # Query commits to the main branch
-          RESPONSE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${SINCE_DATE}&per_page=20")
           
-          # Check for error response
-          ERROR_MSG=$(echo "$RESPONSE" | jq -r '.message // empty' 2>/dev/null)
+          # Extract HTTP status code and body
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "HTTP Status: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "API request failed with status $HTTP_CODE"
+            echo "Response: $BODY"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Check for error message in response
+          ERROR_MSG=$(echo "$BODY" | jq -r '.message // empty' 2>/dev/null)
           if [ ! -z "$ERROR_MSG" ]; then
             echo "API Error: $ERROR_MSG"
             echo "has_changes=false" >> $GITHUB_OUTPUT
             exit 0
           fi
           
-          # Check if we got any commits
-          COUNT=$(echo "$RESPONSE" | jq 'length' 2>/dev/null)
+          # Check if response is a valid array using a safer method
+          IS_ARRAY=$(echo "$BODY" | jq 'type' 2>/dev/null)
+          if [ "$IS_ARRAY" != '"array"' ]; then
+            echo "API response is not an array (type: $IS_ARRAY)"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Count commits safely
+          COUNT=$(echo "$BODY" | jq 'length' 2>/dev/null || echo 0)
           echo "Found $COUNT recent commits"
           
           if [ "$COUNT" -eq 0 ] || [ -z "$COUNT" ]; then
@@ -48,7 +69,7 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             # Extract commits safely
-            COMMITS=$(echo "$RESPONSE" | jq -r '.[] | "\(.sha[0:7])|\(.commit.message // "")|\(.commit.author.date // "")"' 2>/dev/null | head -5)
+            COMMITS=$(echo "$BODY" | jq -r '.[] | "\(.sha[0:7])|\(.commit.message // "")|\(.commit.author.date // "")"' 2>/dev/null | head -5)
             
             if [ ! -z "$COMMITS" ]; then
               echo "Successfully extracted $COUNT commits"
@@ -57,6 +78,7 @@ jobs:
               echo "$COMMITS" >> $GITHUB_OUTPUT
               echo "EOF" >> $GITHUB_OUTPUT
             else
+              echo "No commits could be extracted"
               echo "has_changes=false" >> $GITHUB_OUTPUT
             fi
           fi

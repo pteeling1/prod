@@ -1,6 +1,15 @@
 {
   "auto_posts": [
     {
+      "id": "auto-2026-02-04-iteyryigg",
+      "title": "Azure Local Documentation Update — February 4",
+      "subtitle": "'Network-to-Network Interconnect (NNI) in Azure Operator Nexus' • Purpose and Role of NNI",
+      "date": "2026-02-04",
+      "content": "<p class=\"article-text\">Microsoft is investing in concepts network to network interconnect as a strategic capability for Azure Local. This indicates their commitment to strengthening 'network-to-network interconnect (nni) in azure operator nexus'.</p>\n    \n    \n    <p class=\"article-text\"><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/commit/792bd0a\" target=\"_blank\">View commit on GitHub →</a></p>",
+      "source": "Azure Local Docs Monitor",
+      "auto_generated": true
+    },
+    {
       "id": "auto-2026-02-04-snve96g3k",
       "title": "Azure Local Documentation Update — February 4",
       "subtitle": "'Network-to-Network Interconnect (NNI) in Azure Operator Nexus' • Purpose and Role of NNI",

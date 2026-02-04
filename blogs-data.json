@@ -1,28 +1,11 @@
 {
-  "auto_posts": []
-}
-      "title": "Azure Local Documentation Update — February 4",
-      "subtitle": "Azure Local documentation improvements",
-      "date": "2026-02-04",
-      "content": "<p class=\"article-text\">Azure Local is tightening its operational requirements. These changes suggest Microsoft is responding to real-world operational challenges, hardening security postures, or streamlining deployment workflows based on customer feedback.</p>\n    \n    \n    <p class=\"article-text\"><strong>📄 Updated files:</strong></p>\n    <ul style=\"margin-left: 20px; font-size: 14px;\">\n    <li><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/blob/792bd0a/azure-local/update/import-discover-updates-offline-23h2.md\" target=\"_blank\">import-discover-updates-offline-23h2.md</a> <span style=\"color: #6b7280; font-size: 13px;\">(modified: +3/-3)</span></li>\n<li><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/blob/792bd0a/azure-local/upgrade/install-solution-upgrade-azure-resource-manager-template.md\" target=\"_blank\">install-solution-upgrade-azure-resource-manager-template.md</a> <span style=\"color: #6b7280; font-size: 13px;\">(modified: +2/-2)</span></li>\n    </ul>\n    \n    <p class=\"article-text\"><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/commit/792bd0a\" target=\"_blank\">View all changes on GitHub →</a></p>",
-      "source": "Azure Local Docs Monitor",
-      "auto_generated": true
-    },
+  "auto_posts": [
     {
-      "id": "auto-2026-02-04-vpmcys206",
+      "id": "auto-2026-02-04-0cptb1xf5",
       "title": "Azure Local Documentation Update — February 4",
       "subtitle": "Azure Local documentation improvements",
       "date": "2026-02-04",
-      "content": "<p class=\"article-text\">Azure Local is tightening its operational requirements. These changes suggest Microsoft is responding to real-world operational challenges, hardening security postures, or streamlining deployment workflows based on customer feedback.</p>\n    \n    \n    <p class=\"article-text\"><strong>📄 Updated files:</strong></p>\n    <ul style=\"margin-left: 20px; font-size: 14px;\">\n    <li><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/blob/792bd0a/azure-local/update/import-discover-updates-offline-23h2.md\" target=\"_blank\">import-discover-updates-offline-23h2.md</a> <span style=\"color: #6b7280; font-size: 13px;\">(modified: +3/-3)</span></li>\n<li><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/blob/792bd0a/azure-local/upgrade/install-solution-upgrade-azure-resource-manager-template.md\" target=\"_blank\">install-solution-upgrade-azure-resource-manager-template.md</a> <span style=\"color: #6b7280; font-size: 13px;\">(modified: +2/-2)</span></li>\n    </ul>\n    \n    <p class=\"article-text\"><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/commit/792bd0a\" target=\"_blank\">View all changes on GitHub →</a></p>",
-      "source": "Azure Local Docs Monitor",
-      "auto_generated": true
-    },
-    {
-      "id": "auto-2026-02-04-0crg97jsg",
-      "title": "Azure Local Documentation Update — February 4",
-      "subtitle": "Azure Local documentation improvements",
-      "date": "2026-02-04",
-      "content": "<p class=\"article-text\">Azure Local is tightening its operational requirements. These changes suggest Microsoft is responding to real-world operational challenges, hardening security postures, or streamlining deployment workflows based on customer feedback.</p>\n    \n    \n    <p class=\"article-text\"><a href=\"https://learn.microsoft.com/en-us/azure-local/update/import-discover-updates-offline-23h2\" target=\"_blank\"><strong>📖 Read on Microsoft Learn →</strong></a></p>\n    <p class=\"article-text\" style=\"font-size: 13px; color: #6b7280;\">(<a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/commit/792bd0a\" target=\"_blank\">View changes on GitHub</a>)</p>",
+      "content": "<p class=\"article-text\"><strong>What changed:</strong></p>\n    \n    <ul style=\"margin-left: 20px; font-size: 14px; line-height: 1.8;\">\n    <li>(removed) - Create an Active Directory Lifecycle Manager (LCM) user account that's a member of the local Administrator group. For instructions, see [Prepare Active Directory for Azure Local deployment](../deploy/deployment-prep-active-directory.md).</li>\n<li>- Create an Active Directory Lifecycle Manager (LCM) user account that's a member of the local Administrator group. Make sure this account also has *Log on as a batch job* rights, as described in [Log on as a batch job](/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/log-on-as-a-batch-job). For instructions, see [Prepare Active Directory for Azure Local deployment](../deploy/deployment-prep-active-directory.md).</li>\n    </ul>\n    \n    \n    <p class=\"article-text\"><strong>📚 Updated pages:</strong></p>\n    <ul style=\"margin-left: 20px; font-size: 14px;\">\n    <li><a href=\"https://learn.microsoft.com/en-us/azure/azure-local/update/import-discover-updates-offline-23h2\" target=\"_blank\">import discover updates offline 23h2</a> <span style=\"color: #6b7280; font-size: 13px;\">(modified)</span></li>\n<li><a href=\"https://learn.microsoft.com/en-us/azure/azure-local/upgrade/install-solution-upgrade-azure-resource-manager-template\" target=\"_blank\">install solution upgrade azure resource manager template</a> <span style=\"color: #6b7280; font-size: 13px;\">(modified)</span></li>\n    </ul>\n    \n    <p class=\"article-text\"><a href=\"https://github.com/MicrosoftDocs/azure-stack-docs/commit/792bd0a\" target=\"_blank\">View detailed diff on GitHub →</a></p>",
       "source": "Azure Local Docs Monitor",
       "auto_generated": true
     }

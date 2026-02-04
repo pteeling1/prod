@@ -1,6 +1,15 @@
 {
   "auto_posts": [
     {
+      "id": "auto-2026-02-04-0aq8zt4t5",
+      "title": "Azure Local Documentation Update — February 4",
+      "subtitle": "Install solution upgrade.md (commit: 94a2a02)     • --- File: azure-local/upgrade/install-solution-upgrade.md (commit: 94a2a02) --- • title: Install solution upgrade on Azure Local",
+      "date": "2026-02-04",
+      "content": "<p class=\"article-text\">The Azure Local documentation has been updated with important new content and improvements. These updates cover key areas of Azure Local deployment, configuration, and operations.</p>\n    \n    <p class=\"article-text\"><strong>📚 Updated Topics:</strong></p>\n    <ul class=\"article-list\">\n    <li>Install solution upgrade.md (commit: 94a2a02)    </li>\n<li>--- File: azure-local/upgrade/install-solution-upgrade.md (commit: 94a2a02) ---</li>\n<li>title: Install solution upgrade on Azure Local</li>\n<li>description: Learn how to install the solution upgrade on your Azure Local instance.</li>\n<li>Install solution upgrade on Azure Local</li>\n<li>Prerequisites</li>\n    </ul>\n    \n    <p class=\"article-text\"><strong>📋 Recent Changes:</strong></p>\n    <p class=\"article-text\">\n    ✓ MicrosoftDocs/main639057565797099471<br/>✓ 2026-02-03T23:03:13Z<br/>✓ Merging changes synced from https://github.com/MicrosoftDocs/azure-stack-docs-pr (branch live)\n    </p>\n    \n    <p class=\"article-text\">For comprehensive information, visit the <a href=\"https://learn.microsoft.com/en-us/azure/azure-local/\" target=\"_blank\">Azure Local documentation</a>.</p>",
+      "source": "Azure Local Docs Monitor",
+      "auto_generated": true
+    },
+    {
       "id": "auto-2026-02-04-50tb5pqk7",
       "title": "Azure Local Documentation Update — February 4",
       "subtitle": "documentation update",

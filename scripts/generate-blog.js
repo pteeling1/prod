@@ -222,6 +222,51 @@ function githubPathToDocsUrl(filepath) {
   return `https://learn.microsoft.com/en-us/azure/${cleanPath}?view=azloc-2601`;
 }
 
+// Detect if a file section is critical (prerequisites, security, procedures, etc)
+function isCriticalSection(line) {
+  const criticalKeywords = [
+    'prerequisite', 'requirement', 'must', 'should', 'permission', 'right',
+    'security', 'credential', 'password', 'authentication', 'authorization',
+    'procedure', 'step', 'instruction', 'process', 'workflow',
+    'error', 'fail', 'issue', 'limitation', 'constraint',
+    'rbac', 'active directory', 'account', 'group', 'user',
+    'upgrade', 'migrate', 'deploy', 'install', 'configure',
+    'version', 'compatibility', 'support', 'deprecated'
+  ];
+  
+  const lowerLine = line.toLowerCase();
+  return criticalKeywords.some(keyword => lowerLine.includes(keyword));
+}
+
+// Detect importance level of changes
+function detectChangeImportance(file, addedLines, removedLines, commitMessage) {
+  let score = 0;
+  const allLines = [...addedLines, ...removedLines];
+  
+  // File path importance
+  if (file.includes('prerequisite') || file.includes('deploy') || file.includes('security')) score += 3;
+  if (file.includes('upgrade') || file.includes('config')) score += 2;
+  
+  // Commit message keywords
+  const lowerMessage = commitMessage.toLowerCase();
+  if (lowerMessage.match(/require|must|permission|right|security|prerequisite/)) score += 3;
+  if (lowerMessage.match(/add|new|implement|support/)) score += 2;
+  if (lowerMessage.match(/fix|correct|clarif/)) score += 1;
+  if (lowerMessage.match(/update text|rename|reword|title|caption|format/)) score -= 2;
+  
+  // Line content importance
+  const criticalLineCount = allLines.filter(line => isCriticalSection(line)).length;
+  score += criticalLineCount;
+  
+  // Length of changes matters - very short changes are usually cosmetic
+  if (addedLines.length <= 2 && removedLines.length <= 2) {
+    const avgLength = allLines.reduce((sum, line) => sum + line.length, 0) / (allLines.length || 1);
+    if (avgLength < 30) score -= 1; // Very short cosmetic changes
+  }
+  
+  return score;
+}
+
 // Parse diff to extract meaningful added/removed lines
 function extractMeaningfulDiffs(files) {
   const changes = [];
@@ -249,7 +294,8 @@ function extractMeaningfulDiffs(files) {
         file: file.filename,
         docsUrl: githubPathToDocsUrl(file.filename),
         added: added.slice(0, 4),
-        removed: removed.slice(0, 4)
+        removed: removed.slice(0, 4),
+        importance: detectChangeImportance(file.filename, added, removed, file.patch)
       });
     }
   }
@@ -330,7 +376,7 @@ async function buildPromptWithFullContext(fullCommit) {
     contextSection += `\n\nPREVIOUS VERSION (before this commit):\n\`\`\`\n${previousContext}\n\`\`\``;
   }
 
-  return `You are an Azure Local infrastructure expert. Analyze these documentation changes and create a technical blog post.
+  return `You are an Azure Local infrastructure expert. Your job is to identify OPERATIONAL IMPACT, not documentation cosmetics.
 
 COMMIT: ${fullCommit.commit.message}
 
@@ -338,27 +384,40 @@ SPECIFIC CHANGES IN THIS COMMIT:
 ${changesList}
 ${contextSection}
 
-Create a bulleted list (5-8 bullets) describing the changes. Each bullet should be ONE SENTENCE and clearly explain:
-- What changed in the documentation
-- Why operations teams need to know about it
+YOUR TASK: Determine if these changes are worth blogging about. Operations teams care about:
+✅ IMPORTANT: Prerequisites, permissions, security requirements, supported configurations, procedures that must be followed
+✅ IMPORTANT: Version-specific guidance, compatibility information, upgrade paths
+✅ IMPORTANT: Error resolutions, troubleshooting procedures, known issues
+❌ NOT IMPORTANT: Title case corrections, terminology changes, rewording for clarity, documentation cleanup
+
+If changes are primarily cosmetic (just rewording, formatting, terminology cleanup), respond with ONLY: [NO_BLOG]
+
+Otherwise, create a bulleted list (5-8 bullets) describing the changes. Each bullet should be ONE SENTENCE and explain:
+- What OPERATIONAL or PROCEDURAL change was made
+- Why ops engineers and architects MUST know about this
 - Specific version applicability (e.g., "Applies to upgrades from Azure Stack HCI 22H2 to 23H2 or 24H2" or "For all new 24H2 deployments")
 
 CRITICAL ANALYSIS:
-- If the document talks about "solution upgrades" or "upgrade from version X", this is for upgrades only, not new deployments
-- Look for phrases like "22H2", "23H2", "24H2" or "20349", "25398", "26100" (OS version numbers)
-- If comparing with previous version: did this requirement exist before? If not, is it new for new deployments or only for upgrades?
-- Search for "applies to" or "only for" qualifiers that scope the requirement
-
-Include only changes that affect deployments, procedures, or requirements. If you can't find any substantive changes worth blogging about, create an empty response.
+- Only include changes that affect HOW operations teams deploy, configure, or troubleshoot Azure Local
+- Ignore changes that are just documentation improvements (grammar, style, terminology)
+- If the document talks about "solution upgrades" or "upgrade from version X", this affects upgrades only, not fresh deployments
+- Look for "prerequisite", "must", "requirement", "security", "permission", "procedure" - these matter
+- Check if version numbers appear (22H2, 23H2, 24H2) - this indicates version-specific scope
 
 Format each bullet as:
-- Description of change and operational impact
+- Description of change and why it matters
 
-Return ONLY the bulleted list, nothing else.`;
+Return ONLY the bulleted list, OR return ONLY the text: [NO_BLOG] if changes are cosmetic.`;
 }
 
 // Generate blog post object
 function createBlogPost(claudeContent, fullCommit) {
+  // Check if Claude decided this isn't worth blogging about
+  if (claudeContent.includes('[NO_BLOG]')) {
+    console.log('⏭️  Claude determined changes are cosmetic - skipping blog post');
+    return null;
+  }
+  
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
   const dateDisplay = now.toLocaleDateString('en-US', {
@@ -487,7 +546,13 @@ async function main() {
       const prompt = await buildPromptWithFullContext(fullCommit);
       claudeContent = await callClaudeAPI(prompt, githubToken);
       
-      // Check if Claude decided not to generate a blog (empty response)
+      // Check if Claude decided this isn't worth blogging about
+      if (claudeContent.includes('[NO_BLOG]')) {
+        console.log('⏭️  Claude determined changes are cosmetic - skipping blog post');
+        process.exit(0);
+      }
+      
+      // Check if Claude provided substantive content (empty response means no blog)
       const bulletLines = claudeContent.trim().split('\n').filter(line => line.trim().startsWith('-'));
       if (bulletLines.length === 0) {
         console.log('⏭️  No substantive changes found for blog post');
@@ -497,6 +562,12 @@ async function main() {
 
     // Create blog post object
     const blogPost = createBlogPost(claudeContent, fullCommit);
+    
+    // If createBlogPost returned null, skip (cosmetic changes)
+    if (!blogPost) {
+      console.log('⏭️  Skipping blog post generation');
+      process.exit(0);
+    }
 
     // Read blogs-data.json
     const blogsDataPath = path.join(__dirname, '..', 'blogs-data.json');

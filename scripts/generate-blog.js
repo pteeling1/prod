@@ -115,10 +115,9 @@ async function callClaudeAPI(prompt, githubToken) {
 
 // Fetch recent Azure Local commits - returns array
 async function fetchAzureLocalCommits() {
-  console.log('🔍 Fetching Azure Local commits...');
+  console.log('🔍 Fetching Azure Local documentation commits...');
   
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-  // Fetch commits and then filter for Azure Local specific paths
   const response = await httpGet(
     'api.github.com',
     `/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${sevenDaysAgo}&per_page=100`
@@ -129,16 +128,29 @@ async function fetchAzureLocalCommits() {
     return [];
   }
 
-  // Filter for Azure Local related commits by checking touched files
-  // Azure Local docs are typically in /azure-stack/user/azure-local/* or similar paths
-  const azureLocalCommits = response.filter(commit => {
-    // We'll need full commit data to see files, so for now filter by message
-    const message = commit.commit?.message || '';
-    return /azure.?local|azure\/local|hci|batch.?job|permission/i.test(message);
-  });
+  // Need to fetch full commit details to see which files were changed
+  // Filter for commits that modified Azure Local documentation files
+  const azureLocalCommits = [];
+  for (const commit of response) {
+    try {
+      const fullCommit = await fetchFullCommit(commit.sha);
+      const files = fullCommit.files || [];
+      
+      // Check if any files match Azure Local paths
+      const hasAzureLocalFiles = files.some(file => 
+        /azure.?local|hci\..*doc|azure-stack\/.*azure-local/i.test(file.filename)
+      );
+      
+      if (hasAzureLocalFiles) {
+        azureLocalCommits.push(fullCommit);
+      }
+    } catch (e) {
+      console.warn(`Could not fetch full details for commit ${commit.sha.slice(0, 7)}`);
+    }
+  }
 
-  console.log(`✅ Found ${response.length} total commits, ${azureLocalCommits.length} Azure Local related`);
-  return azureLocalCommits.length > 0 ? azureLocalCommits : response.slice(0, 5); // Fallback to first 5 if no matches
+  console.log(`✅ Found ${response.length} total commits, ${azureLocalCommits.length} with Azure Local documentation changes`);
+  return azureLocalCommits;
 }
 
 // Fetch full commit with diffs

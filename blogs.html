@@ -408,7 +408,6 @@
             <h1 class="masthead">Teeling Cloud Courant</h1>
             <p class="tagline">making hybrid cloud a little less cloudy</p>
             <div class="publication-info">
-                <span class="date" id="currentDate">Tuesday, February 3, 2026</span>
                 <span class="issue">Volume 1, Issue 1</span>
                 <span>St.Louis, MO</span>
             </div>
@@ -1014,13 +1013,6 @@ In practical terms:
     </div>
 
     <script>
-        // Update date dynamically
-        function updateDate() {
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const today = new Date();
-            const dateString = today.toLocaleDateString('en-US', options);
-            document.getElementById('currentDate').textContent = dateString;
-        }
 
         // Load auto-generated posts from blogs-data.json
         async function loadAutoPosts() {
@@ -1042,7 +1034,6 @@ In practical terms:
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('DOMContentLoaded fired');
-            updateDate();
             fetchMarketWatch();
             
             // Load and display auto posts

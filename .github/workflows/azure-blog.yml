@@ -20,6 +20,7 @@ jobs:
         run: node scripts/generate-blog.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEST_MODE: 'true'
 
       - name: Commit and push
         run: |

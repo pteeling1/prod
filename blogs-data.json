@@ -1,6 +1,16 @@
 {
   "auto_posts": [
     {
+      "id": "auto-2026-02-05-lsg2eidf",
+      "title": "Azure Local Update — February 5, 2026",
+      "subtitle": "Documentation changes",
+      "date": "2026-02-05",
+      "content": "<p class=\"article-text\">## Azure Local Documentation Updates: Key Terminology and Process Changes</p><p class=\"article-text\">Microsoft has standardized terminology across Azure Local documentation, changing references from generic \"Azure Local\" to \"Azure Local instance\" when referring to specific deployments. The SQL Server deployment guide now explicitly lists supported workloads including \"Online transaction processing (OLTP) workloads\" rather than using the acronym inline.</p><p class=\"article-text\">**Action Required:**\n- Update internal runbooks to reference \"Azure Local instance\" instead of generic \"Azure Local\" when documenting specific deployments\n- VM creation now supports three methods: Azure CLI, Azure portal, and ARM templates (previously \"Azure Resource Manager template\")\n- RBAC references now explicitly state \"Azure role-based access control\" on first use</p><p class=\"article-text\">These changes improve precision in multi-instance environments where distinguishing between the platform and specific instances matters for operational clarity.</p><p class=\"article-text\"><a href=\"https://learn.microsoft.com/en-us/azure-stack/aks-create-clusters-portal\">📖 Read the updated documentation →</a></p>",
+      "source": "Azure Local Blog Monitor",
+      "auto_generated": true,
+      "claude_generated": true
+    },
+    {
       "id": "auto-2026-02-05-aoti4avm",
       "title": "Azure Local Update — February 5, 2026",
       "subtitle": "Documentation changes",

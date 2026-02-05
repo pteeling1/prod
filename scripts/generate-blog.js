@@ -151,40 +151,78 @@ async function fetchFullCommit(sha) {
   return response;
 }
 
+// Map GitHub path to docs.microsoft.com URL
+function githubPathToDocsUrl(filepath) {
+  const cleanPath = filepath.replace(/\.md$/, '').replace(/^.*?\//, '');
+  return `https://learn.microsoft.com/en-us/azure-stack/${cleanPath}`;
+}
+
+// Parse diff to extract meaningful added/removed lines
+function extractMeaningfulDiffs(files) {
+  const changes = [];
+  
+  for (const file of files.slice(0, 5)) {
+    if (!file.patch) continue;
+    
+    const lines = file.patch.split('\n');
+    const added = [];
+    const removed = [];
+    
+    for (const line of lines) {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        const content = line.substring(1).trim();
+        if (content.length > 15 && !content.match(/^[#\s]*$/)) added.push(content);
+      }
+      if (line.startsWith('-') && !line.startsWith('---')) {
+        const content = line.substring(1).trim();
+        if (content.length > 15 && !content.match(/^[#\s]*$/)) removed.push(content);
+      }
+    }
+    
+    if (added.length > 0 || removed.length > 0) {
+      changes.push({
+        file: file.filename,
+        docsUrl: githubPathToDocsUrl(file.filename),
+        added: added.slice(0, 4),
+        removed: removed.slice(0, 4)
+      });
+    }
+  }
+  
+  return changes;
+}
+
 // Build the prompt for Claude
 function buildPrompt(fullCommit) {
   const files = fullCommit.files || [];
+  const meaningfulChanges = extractMeaningfulDiffs(files);
   
-  const fileList = files
-    .map(f => `- ${f.filename}: +${f.additions} -${f.deletions}`)
-    .join('\n');
+  // Format changes for Claude with before/after context
+  const changesContext = meaningfulChanges.map(c => {
+    let text = `\n**${c.file}**`;
+    if (c.removed.length > 0) {
+      text += `\nRemoved: ${c.removed.map(r => `"${r}"`).join(' | ')}`;
+    }
+    if (c.added.length > 0) {
+      text += `\nAdded: ${c.added.map(a => `"${a}"`).join(' | ')}`;
+    }
+    return text;
+  }).join('');
 
-  const diffs = files
-    .slice(0, 3)
-    .map(f => f.patch || '')
-    .filter(p => p)
-    .join('\n\n')
-    .slice(0, 2500);
+  return `You are an Azure Local infrastructure expert analyzing documentation changes.
 
-  return `You are an Azure Local infrastructure expert writing technical blog posts for operations teams.
+COMMIT: ${fullCommit.commit.message}
 
-Analyze this Azure Local documentation change and write a 90-120 word technical blog post:
+ACTUAL CHANGES (what was removed vs. added):
+${changesContext}
 
-**Commit Message:**
-${fullCommit.commit.message}
+Your task:
+1. IDENTIFY the specific technical change - quote the actual text that changed, don't summarize
+2. EXPLAIN WHY it matters - be concrete about operational impact (e.g., "deployments will fail if...", "teams must add...")
+3. DESCRIBE WHAT TO DO - what actionable steps ops teams need to take
+4. AVOID generic language - no "enhanced", "streamlined", "updated" without specific details
 
-**Files Changed:**
-${fileList}
-
-**Diff Preview (first 2500 chars):**
-${diffs}
-
-**Requirements:**
-1. Explain WHAT changed and WHY it matters for operations teams
-2. Be SPECIFIC - reference actual file changes, new fields, removed steps, etc.
-3. Mention OPERATIONAL IMPACT - what ops engineers need to do
-4. Keep it TECHNICAL but ACCESSIBLE - assume reader is experienced ops engineer
-5. Format as plain text paragraphs, NO markdown`;
+Write a 100-120 word technical blog post. Focus on concrete changes and what ops teams must know to operate correctly.`;
 }
 
 // Generate blog post object
@@ -204,7 +242,10 @@ function createBlogPost(claudeContent, fullCommit) {
     .map(p => `<p class="article-text">${p.trim()}</p>`)
     .join('');
 
-  const linkHtml = `<p class="article-text"><a href="https://github.com/MicrosoftDocs/azure-stack-docs/commit/${fullCommit.sha.slice(0, 7)}">View full commit on GitHub →</a></p>`;
+  // Link to the primary docs page being updated
+  const mainFile = (fullCommit.files || [])[0];
+  const docsUrl = mainFile ? githubPathToDocsUrl(mainFile.filename) : 'https://learn.microsoft.com/en-us/azure-stack/';
+  const linkHtml = `<p class="article-text"><a href="${docsUrl}">📖 Read the updated documentation →</a></p>`;
 
   return {
     id: `auto-${dateStr}-${Math.random().toString(36).slice(2, 10)}`,

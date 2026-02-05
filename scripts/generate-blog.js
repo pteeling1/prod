@@ -113,30 +113,23 @@ async function callClaudeAPI(prompt, githubToken) {
   return content;
 }
 
-// Fetch recent Azure Local commits
+// Fetch recent Azure Local commits - returns array
 async function fetchAzureLocalCommits() {
   console.log('🔍 Fetching Azure Local commits...');
   
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
   const response = await httpGet(
     'api.github.com',
-    `/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${sevenDaysAgo}&per_page=50`
+    `/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${sevenDaysAgo}&per_page=100`
   );
 
   if (!Array.isArray(response) || response.length === 0) {
     console.log('⚠️  No commits found in past 7 days');
-    return null;
+    return [];
   }
 
-  console.log(`✅ Found ${response.length} commits`);
-
-  // Find an Azure Local-related commit (broad filter)
-  let commit = response.find(c => 
-    /azure.local|azure\/local|hci/i.test(c.commit.message)
-  ) || response[0];
-
-  console.log(`📌 Selected commit: ${commit.sha.slice(0, 7)}`);
-  return commit;
+  console.log(`✅ Found ${response.length} commits in past 7 days`);
+  return response;
 }
 
 // Fetch full commit with diffs
@@ -506,77 +499,9 @@ async function main() {
     if (!testMode && !githubToken && !anthropicKey) {
       throw new Error('Please set TEST_MODE=true, GITHUB_TOKEN, or ANTHROPIC_API_KEY');
     }
-    
-    if (testMode) {
-      console.log('🧪 Running in TEST MODE (using mock data)\n');
-    }
 
-    // Fetch commits
-    let commit, fullCommit, claudeContent;
-    
-    if (testMode) {
-      // Mock data for testing
-      commit = {
-        sha: 'abc1234567890def',
-        commit: { message: 'Docs: Update Azure Local deployment guide' }
-      };
-      fullCommit = {
-        sha: 'abc1234567890def',
-        commit: { message: 'Docs: Update Azure Local deployment guide for v1.2.3' },
-        files: [
-          { filename: 'docs/deploy-azure-local.md', additions: 25, deletions: 12, patch: '--- a/docs/deploy-azure-local.md\n+++ b/docs/deploy-azure-local.md\n@@ -45,7 +45,10 @@\n ## Prerequisites\n\n+Updated for Azure Local v1.2.3\n These are the minimum requirements:' }
-        ]
-      };
-      claudeContent = 'Azure Local deployment documentation has been updated to reflect the latest v1.2.3 release. Key changes include improved prerequisite documentation and additional guidance for cluster operators. This update simplifies the deployment experience and reduces common configuration errors.';
-    } else {
-      // Check if testing against a specific commit
-      const testCommitSha = process.env.TEST_COMMIT;
-      
-      if (testCommitSha) {
-        console.log(`🧪 Testing against specific commit: ${testCommitSha}`);
-        fullCommit = await fetchFullCommit(testCommitSha);
-      } else {
-        commit = await fetchAzureLocalCommits();
-        if (!commit) {
-          console.log('💤 No commits found, skipping blog generation');
-          process.exit(0);
-        }
-
-        // Get full commit with diffs
-        fullCommit = await fetchFullCommit(commit.sha);
-      }
-
-      // Call Claude to generate blog content
-      const prompt = await buildPromptWithFullContext(fullCommit);
-      claudeContent = await callClaudeAPI(prompt, githubToken);
-      
-      // Check if Claude decided this isn't worth blogging about
-      if (claudeContent.includes('[NO_BLOG]')) {
-        console.log('⏭️  Claude determined changes are cosmetic - skipping blog post');
-        process.exit(0);
-      }
-      
-      // Check if Claude provided substantive content (empty response means no blog)
-      const bulletLines = claudeContent.trim().split('\n').filter(line => line.trim().startsWith('-'));
-      if (bulletLines.length === 0) {
-        console.log('⏭️  No substantive changes found for blog post');
-        process.exit(0);
-      }
-    }
-
-    // Create blog post object
-    const blogPost = createBlogPost(claudeContent, fullCommit);
-    
-    // If createBlogPost returned null, skip (cosmetic changes)
-    if (!blogPost) {
-      console.log('⏭️  Skipping blog post generation');
-      process.exit(0);
-    }
-
-    // Read blogs-data.json
+    // Read existing blogs-data.json to check if we need backfill
     const blogsDataPath = path.join(__dirname, '..', 'blogs-data.json');
-    console.log(`\n📖 Updating ${blogsDataPath}...`);
-
     let blogsData = { auto_posts: [] };
     if (fs.existsSync(blogsDataPath)) {
       const content = fs.readFileSync(blogsDataPath, 'utf8');
@@ -586,21 +511,110 @@ async function main() {
         console.warn('⚠️  Could not parse existing blogs-data.json, starting fresh');
       }
     }
-
-    // Add new post to beginning of array
-    if (!Array.isArray(blogsData.auto_posts)) {
-      blogsData.auto_posts = [];
+    
+    const needsBackfill = !blogsData.auto_posts || blogsData.auto_posts.length === 0;
+    if (needsBackfill) {
+      console.log('📚 Blog data is empty - will backfill with ALL operational changes from past 7 days\n');
     }
-    blogsData.auto_posts.unshift(blogPost);
+    
+    if (testMode) {
+      console.log('🧪 Running in TEST MODE (using mock data)\n');
+    }
 
-    // Write back to file
+    // Fetch commits
+    let commits = [];
+    let generatedCount = 0;
+    
+    if (testMode) {
+      // Mock data for testing
+      const mockCommit = {
+        sha: 'abc1234567890def',
+        commit: { message: 'Docs: Update Azure Local deployment guide for v1.2.3' },
+        files: [
+          { filename: 'docs/deploy-azure-local.md', additions: 25, deletions: 12, patch: '--- a/docs/deploy-azure-local.md\n+++ b/docs/deploy-azure-local.md\n@@ -45,7 +45,10 @@\n ## Prerequisites\n\n+Updated for Azure Local v1.2.3\n These are the minimum requirements:' }
+        ]
+      };
+      commits = [mockCommit];
+    } else {
+      // Check if testing against a specific commit
+      const testCommitSha = process.env.TEST_COMMIT;
+      
+      if (testCommitSha) {
+        console.log(`🧪 Testing against specific commit: ${testCommitSha}`);
+        const fullCommit = await fetchFullCommit(testCommitSha);
+        commits = [fullCommit];
+      } else {
+        // Fetch all commits from past 7 days
+        commits = await fetchAzureLocalCommits();
+        if (commits.length === 0) {
+          console.log('💤 No commits found, skipping blog generation');
+          process.exit(0);
+        }
+      }
+    }
+
+    // If backfilling, process ALL commits; otherwise process just the most recent
+    const commitsToProcess = needsBackfill ? commits : commits.slice(0, 1);
+    
+    console.log(`\n📝 Processing ${commitsToProcess.length} commit(s)...\n`);
+
+    for (const commit of commitsToProcess) {
+      try {
+        let fullCommit = commit;
+        
+        // If we just have the summary, fetch full details
+        if (!commit.files) {
+          fullCommit = await fetchFullCommit(commit.sha);
+        }
+
+        // Call Claude to generate blog content
+        const prompt = await buildPromptWithFullContext(fullCommit);
+        const claudeContent = await callClaudeAPI(prompt, githubToken);
+        
+        // Check if Claude decided this isn't worth blogging about
+        if (claudeContent.includes('[NO_BLOG]')) {
+          console.log(`⏭️  Skipping commit ${fullCommit.sha.slice(0, 7)}: cosmetic changes only`);
+          continue;
+        }
+        
+        // Check if Claude provided substantive content
+        const bulletLines = claudeContent.trim().split('\n').filter(line => line.trim().startsWith('-'));
+        if (bulletLines.length === 0) {
+          console.log(`⏭️  Skipping commit ${fullCommit.sha.slice(0, 7)}: no substantive changes`);
+          continue;
+        }
+
+        // Create blog post object
+        const blogPost = createBlogPost(claudeContent, fullCommit);
+        
+        // If createBlogPost returned null, skip
+        if (!blogPost) {
+          console.log(`⏭️  Skipping commit ${fullCommit.sha.slice(0, 7)}: rejected during blog creation`);
+          continue;
+        }
+
+        // Add new post to beginning of array
+        if (!Array.isArray(blogsData.auto_posts)) {
+          blogsData.auto_posts = [];
+        }
+        blogsData.auto_posts.unshift(blogPost);
+        generatedCount++;
+
+        console.log(`✅ Blog post added for commit ${fullCommit.sha.slice(0, 7)}`);
+        console.log(`   Title: ${blogPost.title}`);
+        
+      } catch (error) {
+        console.error(`❌ Error processing commit: ${error.message}`);
+        // Continue to next commit instead of failing entirely
+        continue;
+      }
+    }
+
+    // Write results back to file
+    console.log(`\n📖 Updating ${blogsDataPath}...`);
     fs.writeFileSync(blogsDataPath, JSON.stringify(blogsData, null, 2));
-    console.log(`✅ Blog post added! Total posts: ${blogsData.auto_posts.length}`);
+    console.log(`✅ Blog generation complete! Generated ${generatedCount} post(s). Total: ${blogsData.auto_posts.length}`);
 
-    console.log('\n📝 Generated Blog Post:');
-    console.log(`   Title: ${blogPost.title}`);
-    console.log(`   Content length: ${blogPost.content.length} chars`);
-    console.log(`   ID: ${blogPost.id}`);
 
   } catch (error) {
     console.error(`\n❌ Error: ${error.message}`);

@@ -21,17 +21,25 @@ jobs:
         id: fetch-commits
         run: |
           SINCE_DATE=$(date -u -d "7 days ago" +"%Y-%m-%dT%H:%M:%SZ")
+          echo "DEBUG: Fetching commits since $SINCE_DATE"
           
           # Fetch all commits from past 7 days
           RESPONSE=$(curl -s -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/MicrosoftDocs/azure-stack-docs/commits?sha=main&since=${SINCE_DATE}&per_page=100")
           
+          COMMIT_COUNT=$(echo "$RESPONSE" | jq 'length')
+          echo "DEBUG: Fetched $COMMIT_COUNT commits"
+          
           # Filter for Azure Local-related commits
           FILTERED=$(echo "$RESPONSE" | jq -c '[.[] | select(.commit.message | test("azure.local|Azure.Local|deployment|upgrade", "i"))] | .[0:1]')
           
+          FILTERED_COUNT=$(echo "$FILTERED" | jq 'length')
+          echo "DEBUG: Filtered to $FILTERED_COUNT commits"
+          
           # If we found a commit, fetch its full details including diff
-          if [ "$(echo "$FILTERED" | jq 'length')" -gt "0" ]; then
+          if [ "$FILTERED_COUNT" -gt "0" ]; then
             SHA=$(echo "$FILTERED" | jq -r '.[0].sha')
+            echo "DEBUG: Selected commit SHA: $SHA"
             
             # Get full commit with files and patches
             FULL_COMMIT=$(curl -s -H "Accept: application/vnd.github.v3+json" \
@@ -46,16 +54,22 @@ jobs:
               files: [.files[] | {filename, additions, deletions, patch}]
             }')
             
+            echo "DEBUG: commit_json size: $(echo "$COMMIT_DATA" | wc -c)"
+            
             echo "commit_json<<EOFCOMMIT" >> $GITHUB_OUTPUT
             echo "$COMMIT_DATA" >> $GITHUB_OUTPUT
             echo "EOFCOMMIT" >> $GITHUB_OUTPUT
           else
+            echo "DEBUG: No commits found, using empty"
             echo "commit_json={}" >> $GITHUB_OUTPUT
           fi
       
       - name: Generate blog post with Claude
         id: generate-blog
         run: |
+          echo "DEBUG: Starting blog generation"
+          echo "DEBUG: COMMIT_DATA length: $(echo '${{ steps.fetch-commits.outputs.commit_json }}' | wc -c)"
+          
           # Create Node.js script to call Claude
           cat > /tmp/blog-generator.js << 'EOFJS'
           const https = require('https');

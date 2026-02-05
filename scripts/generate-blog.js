@@ -129,9 +129,9 @@ async function fetchAzureLocalCommits() {
 
   console.log(`✅ Found ${response.length} commits`);
 
-  // Find an Azure Local-related commit
+  // Find an Azure Local-related commit (broad filter)
   let commit = response.find(c => 
-    /azure.local|azure\/local|deployment|upgrade/i.test(c.commit.message)
+    /azure.local|azure\/local|hci/i.test(c.commit.message)
   ) || response[0];
 
   console.log(`📌 Selected commit: ${commit.sha.slice(0, 7)}`);
@@ -215,32 +215,52 @@ function buildPrompt(fullCommit) {
   const files = fullCommit.files || [];
   const meaningfulChanges = extractMeaningfulDiffs(files);
   
-  // Format changes for Claude with before/after context
-  const changesContext = meaningfulChanges.map(c => {
-    let text = `\n**${c.file}**`;
+  // Create structured change descriptions with links
+  const changesWithUrls = meaningfulChanges.map(c => {
+    const filename = c.file.split('/').pop().replace(/\.md$/, '');
+    let changes = [];
     if (c.removed.length > 0) {
-      text += `\nRemoved: ${c.removed.map(r => `"${r}"`).join(' | ')}`;
+      changes.push(`Removed: ${c.removed[0]}`);
     }
     if (c.added.length > 0) {
-      text += `\nAdded: ${c.added.map(a => `"${a}"`).join(' | ')}`;
+      changes.push(`Added: ${c.added[0]}`);
     }
-    return text;
-  }).join('');
+    return {
+      filename,
+      url: c.docsUrl,
+      change: changes.join(' | ')
+    };
+  }).slice(0, 8);
 
-  return `You are an Azure Local infrastructure expert analyzing documentation changes.
+  const changesList = changesWithUrls.map(c => `- **${c.filename}** (${c.url}): ${c.change}`).join('\n');
+
+  return `You are an Azure Local infrastructure expert. Analyze these documentation changes and decide if they warrant a blog post for operations teams.
 
 COMMIT: ${fullCommit.commit.message}
 
-ACTUAL CHANGES (what was removed vs. added):
-${changesContext}
+FILES CHANGED WITH DOCUMENTATION LINKS:
+${changesList}
 
-Your task:
-1. IDENTIFY the specific technical change - quote the actual text that changed, don't summarize
-2. EXPLAIN WHY it matters - be concrete about operational impact (e.g., "deployments will fail if...", "teams must add...")
-3. DESCRIBE WHAT TO DO - what actionable steps ops teams need to take
-4. AVOID generic language - no "enhanced", "streamlined", "updated" without specific details
+=== QUALITY GATE ===
+REJECT the changes if:
+- Only cosmetic/formatting changes (capitalization, punctuation, wording improvements)
+- No new documents, no procedural changes, no new requirements
+- Changes that don't impact how engineers/architects approach their work
 
-Write a 100-120 word technical blog post. Focus on concrete changes and what ops teams must know to operate correctly.`;
+If you reject the changes, respond with ONLY: "SKIP_BLOG"
+
+=== BLOG GENERATION ===
+If the changes are substantive (new docs, significant procedural changes, new requirements, changed best practices), create a bulleted list (5-8 bullets) where EACH bullet is ONE SENTENCE.
+
+For each bullet:
+1. Describe the actual change, new requirement, or new document
+2. Explain what operations/deployment teams need to do differently
+3. Be specific and actionable - reference actual technical details, not cosmetics
+
+Return ONLY the bulleted list, nothing else. Format:
+- One sentence describing the change and its operational impact
+
+Focus on practical, actionable information that affects deployment or operations.`;
 }
 
 // Generate blog post object
@@ -253,25 +273,52 @@ function createBlogPost(claudeContent, fullCommit) {
     day: 'numeric'
   });
 
-  // Convert Claude's response to HTML paragraphs
-  const htmlContent = claudeContent
-    .split('\n\n')
-    .filter(p => p.trim())
-    .map(p => `<p class="article-text">${p.trim()}</p>`)
-    .join('');
-
-  // Create links for all updated documentation files
-  const docsLinks = (fullCommit.files || [])
-    .slice(0, 10) // Limit to 10 docs to avoid clutter
-    .map((file, idx) => {
-      const url = githubPathToDocsUrl(file.filename);
-      const fileLabel = file.filename.split('/').pop().replace(/\.md$/, '');
-      return `<a href="${url}">${fileLabel}</a>`;
-    })
-    .join(' • ');
+  // Parse Claude's bullet points and inject links
+  const meaningfulChanges = extractMeaningfulDiffs(fullCommit.files || []);
+  const urlMap = new Map();
+  meaningfulChanges.forEach(c => {
+    urlMap.set(c.docsUrl, true);
+  });
   
-  const docsSection = docsLinks 
-    ? `<p class="article-text"><strong>Updated documentation:</strong> ${docsLinks}</p>`
+  // Extract bullet points from Claude's response
+  const bulletLines = claudeContent
+    .split('\n')
+    .filter(line => line.trim().startsWith('-') && line.trim().length > 2);
+  
+  // Since we don't have direct filename references in the bullets,
+  // we'll pair each bullet with a relevant documentation link
+  const bulletChunks = bulletLines.slice(0, urlMap.size).map((line, idx) => {
+    const url = Array.from(urlMap.keys())[idx];
+    let bullet = line.trim();
+    if (bullet.startsWith('- ')) {
+      bullet = bullet.substring(2);
+    }
+    
+    return `<p class="article-text">- ${bullet} <a href="${url}">→ Documentation</a></p>`;
+  }).join('');
+  
+  // Get any remaining bullets without links
+  const remainingBullets = bulletLines.slice(urlMap.size).map(line => {
+    let bullet = line.trim();
+    if (bullet.startsWith('- ')) {
+      bullet = bullet.substring(2);
+    }
+    return `<p class="article-text">- ${bullet}</p>`;
+  }).join('');
+  
+  const htmlContent = bulletChunks + remainingBullets;
+  
+  // Create reference section for any documentation links
+  const allUrls = meaningfulChanges.map(c => c.docsUrl);
+  const uniqueUrls = [...new Set(allUrls)];
+  const referenceSection = uniqueUrls.length > 0
+    ? `<p class="article-text"><strong>Related documentation:</strong> ${uniqueUrls.map((url, i) => {
+        const name = url.includes('/deploy/') ? 'Deployment' : 
+                     url.includes('/manage/') ? 'Management' :
+                     url.includes('/whats-new') ? 'What\'s New' :
+                     'Azure Local';
+        return `<a href="${url}">${name}</a>`;
+      }).join(' • ')}</p>`
     : '';
 
   return {
@@ -279,7 +326,7 @@ function createBlogPost(claudeContent, fullCommit) {
     title: `Azure Local Update — ${dateDisplay}`,
     subtitle: 'Documentation changes',
     date: dateStr,
-    content: htmlContent + docsSection,
+    content: htmlContent + referenceSection,
     source: 'Azure Local Blog Monitor',
     auto_generated: true,
     claude_generated: true
@@ -336,6 +383,12 @@ async function main() {
 
       // Call Claude to generate blog content
       claudeContent = await callClaudeAPI(buildPrompt(fullCommit), githubToken);
+      
+      // Check if Claude rejected the changes as not substantive enough
+      if (claudeContent.trim() === 'SKIP_BLOG') {
+        console.log('⏭️  Claude assessed changes as cosmetic only - skipping blog post');
+        process.exit(0);
+      }
     }
 
     // Create blog post object

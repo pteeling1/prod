@@ -174,7 +174,7 @@
 
         .read-more {
             font-size: 13px;
-            color: #1a2332;
+            color: var(--color-dutch-orange);
             font-weight: 600;
             display: inline-flex;
             align-items: center;
@@ -443,7 +443,7 @@
                         
                         <p class="article-text">For many years, 10 GbE — and later 25 GbE — was sufficient for most storage workloads. Even today, dual‑port 25 GbE designs are often considered "more than enough." But once you start building dense all‑NVMe nodes, those assumptions begin to break down.</p>
                         
-                        <button onclick="showBlog('100gbit', event)" class="read-more" style="background: none; border: none; padding: 0; cursor: pointer; margin-top: 20px;"><span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Article <i class="bi bi-arrow-right"></i></span></button>
+                        <button onclick="showBlog('100gbit', event)" class="read-more" style="background: none; border: none; padding: 0; cursor: pointer; margin-top: 20px;"><span style="color: var(--color-dutch-orange); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Article <i class="bi bi-arrow-right"></i></span></button>
                     </article>
 
                     <!-- Article 2 -->
@@ -460,7 +460,7 @@
                         
                         <p class="article-text">This is your wake‑up call — with clear facts and supported directions, not "just wait." Azure Local's 22H2 and 23H2 releases are on borrowed time. 22H2 is already out of support, and 23H2 — including stretched clusters — stops receiving security and quality updates after April 2026.</p>
                         
-                        <button onclick="showBlog('azure-local', event)" class="read-more" style="background: none; border: none; padding: 0; cursor: pointer; margin-top: 20px;"><span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Article <i class="bi bi-arrow-right"></i></span></button>
+                        <button onclick="showBlog('azure-local', event)" class="read-more" style="background: none; border: none; padding: 0; cursor: pointer; margin-top: 20px;"><span style="color: var(--color-dutch-orange); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Article <i class="bi bi-arrow-right"></i></span></button>
                     </article>
                 </div>
 
@@ -1123,7 +1123,7 @@ In practical terms:
                         </div>
                         
                         <button onclick="expandAutoPost('${postId}')" style="background: none; border: none; padding: 0; cursor: pointer; margin-top: 20px;">
-                            <span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Update <i class="bi bi-arrow-right"></i></span>
+                            <span style="color: var(--color-dutch-orange); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Update <i class="bi bi-arrow-right"></i></span>
                         </button>
                     `;
 
@@ -1141,7 +1141,7 @@ In practical terms:
 
             if (contentDiv.style.maxHeight === 'none') {
                 contentDiv.style.maxHeight = '200px';
-                button.innerHTML = '<span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Update <i class="bi bi-arrow-right"></i></span>';
+                button.innerHTML = '<span style="color: var(--color-dutch-orange); font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Read Full Update <i class="bi bi-arrow-right"></i></span>';
             } else {
                 contentDiv.style.maxHeight = 'none';
                 button.innerHTML = '<span style="color: #1a2332; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">Collapse <i class="bi bi-arrow-up"></i></span>';

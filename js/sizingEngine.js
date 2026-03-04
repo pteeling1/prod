@@ -101,6 +101,8 @@ function calculateResourceOvershootPenalty(actual, required, weight = 1, maxPena
 function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLevel, workloadType, cpuListOverride = cpuList, maxCPUUtilization = 0.60, maxMemoryUtilization = 0.60, chassisModel = "AX 770") {
   if (requiredCores <= 0) throw new Error("Required cores must be greater than 0");
 
+  cpuScoreLog.length = 0;  // Clear the log at start of each selection
+  
   let bestCandidate = null;
   let bestGoldCandidate = null;
   const goldPreferenceThreshold = 1000;
@@ -157,10 +159,10 @@ function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLe
    // }
 
     // Sweet spot bonus
-   // const sweetSpot = nodesNeeded >= 4 && nodesNeeded <= 6 &&
+   // const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5 &&
 //                   totalPhysicalCores >= 200 && totalPhysicalCores <= 250;
 
-const sweetSpot = nodesNeeded >= 4 && nodesNeeded <= 6;
+const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5;
 
     const clockBonus = cpu.base_clock_GHz * -100; // Higher clock speed gets lower (better) score
 
@@ -332,7 +334,7 @@ function selectOptimalCpuForGHz(requiredGHz, totalRAM, totalStorageTiB, haLevel,
     const overshootRatio = actualGHz / requiredGHz;
     const tightFitBonus = overshootRatio <= 1.2 ? -1000 : 0;
     const ghzDensityPenalty = usableGHzPerNode < 160 ? 1000 : 0;
-    const sweetSpot = nodesNeeded >= 4 && nodesNeeded <= 6;
+    const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5;
     const sweetSpotBonus = sweetSpot ? -3000 : 0;
 
     const totalScore = efficiencyScore + nodePenalty + ghzOvershootPenalty + tightFitBonus + ghzDensityPenalty + sweetSpotBonus;

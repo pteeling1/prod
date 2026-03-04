@@ -8,12 +8,12 @@ export const LIGHT_THEME = {
   background: { color: 'FFFFFF' },
   textColor: '333333',
   fontFace: 'Segoe UI',
-  accent1: '4A6FA5',      // muted blue
-  accent2: '5BA6A0',      // muted teal
-  accentSoft: '7A9FB3',   // soft blue-teal blend
-  borderLight: 'D9D9D9',
-  borderMedium: 'CCCCCC',
-  borderDark: '888888',
+  accent1: '0066CC',      // vibrant modern blue
+  accent2: '6B4CE6',      // modern purple
+  accentSoft: '4A90E2',   // light blue
+  borderLight: 'E8E8E8',
+  borderMedium: 'D0D0D0',
+  borderDark: '666666',
   softGray1: 'F8F9FA',
   softGray2: 'F0F2F5',
   mediumGray: '666666'

@@ -292,6 +292,8 @@ function updateNodeStack()
 
   const nodeType = document.querySelector('input[name="nodeType"]:checked')?.value || "AX 760";
   const imageMap = {
+    "AX-4510c": "45x0.png",
+    "AX-4520c": "45x0.png",
     "AX 760": "760new.png",
     "AX 660": "660new.png",
     "AX 670": "670new.png",

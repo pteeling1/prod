@@ -108,6 +108,8 @@ function updateNodeStack() {
   nodeRow.innerHTML = "";
 
   const imageMap = {
+    "AX-4510c": "45x0.png",
+    "AX-4520c": "45x0.png",
     AX760: "760.png",
     AX660: "660.png"
   };

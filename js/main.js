@@ -1,3 +1,9 @@
+// ====================================================================
+// 🚫 FEATURE FLAG: 17G SUPPORT (AX 670 & AX 770)
+// Set to false to disable 17G features until March 17, 2026
+// ====================================================================
+const ENABLE_17G = false;
+
 // === Imports ===
 import { cpuList as cpuDataOld } from './cpuData.js';
 import { cpuList as cpuDataNew } from './17GcpuData.js';

@@ -155,7 +155,7 @@ nodeSlider.addEventListener("input", () => {
 const cpuUnitSelect = document.getElementById("cpuUnit");
 const coreInputWrapper = document.getElementById("coreInputWrapper");
 const ghzInputWrapper = document.getElementById("ghzInputWrapper");
-  const memoryOptions = [128, 192, 256, 384, 512, 768, 1024, 1152, 1536, 2048, 3072, 4096, 6144, 8192];
+  const memoryOptions = [64, 128, 192, 256, 384, 512, 768, 1024, 1152, 1536, 2048, 3072, 4096, 6144, 8192];
   const diskSizesTB = [0.96, 1.92, 3.84, 7.68, 15.36];
 
   const switchModePanel = document.getElementById("switchModePanel");

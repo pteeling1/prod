@@ -445,7 +445,7 @@ function sizeCluster(req) {
 
   const baseClock = cpu.base_clock_GHz;
 
-  const memOpts = getValidMemoryOptions()
+  const memOpts = getValidMemoryOptions(chassisModel)
     .map(opt => {
       const usable = Math.floor(opt.totalGB * (1 - SYS_MEM_RATIO));
       const nodesNeeded = Math.ceil(totalRAM / usable);

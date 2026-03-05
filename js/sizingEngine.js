@@ -407,7 +407,7 @@ function selectOptimalCpuForGHz(requiredGHz, totalRAM, totalStorageTiB, haLevel,
 // 💾 Optimized Memory Selection
 
 function selectOptimalMemoryConfig(requiredRAM, nodeCount, haLevel, chassisModel = "AX 770") {
-  const memoryOptions = getValidMemoryOptions();
+  const memoryOptions = getValidMemoryOptions(chassisModel);
   
   // Get the maximum memory allowed for this specific chassis model
   const maxMemoryPerNodeAllowed = getMaxMemoryPerNode(chassisModel);

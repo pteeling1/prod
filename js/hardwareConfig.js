@@ -1,17 +1,28 @@
 // hardwareConfig.js
 
-// 🧠 DIMM sizes in GB
-export const dimmSizesGB = [16, 32, 64, 96, 128, 256];
+// 🧠 DIMM sizes in GB (default for standard systems)
+const DEFAULT_DIMM_SIZES = [16, 32, 64, 96, 128, 256];
 
-// 🧮 Valid DIMM population counts
-export const dimmQuantities = [8, 12, 16, 24, 32];
+// 🧮 Valid DIMM population counts (default for standard systems)
+const DEFAULT_DIMM_QUANTITIES = [8, 12, 16, 24, 32];
+
+// 🧠 DIMM sizes for Ice Lake D (AX-4510c, AX-4520c) - 4 DIMM slots only
+const ICE_LAKE_D_DIMM_SIZES = [16, 32, 64, 128];
+const ICE_LAKE_D_DIMM_QUANTITIES = [4];
+
+// 🧠 Chassis-specific DIMM configurations
+export const chassisDimmConfig = {
+  "AX 660": { sizes: DEFAULT_DIMM_SIZES, quantities: DEFAULT_DIMM_QUANTITIES },
+  "AX 670": { sizes: DEFAULT_DIMM_SIZES, quantities: DEFAULT_DIMM_QUANTITIES },
+  "AX 760": { sizes: DEFAULT_DIMM_SIZES, quantities: DEFAULT_DIMM_QUANTITIES },
+  "AX 770": { sizes: DEFAULT_DIMM_SIZES, quantities: DEFAULT_DIMM_QUANTITIES },
+  "AX-4510c": { sizes: ICE_LAKE_D_DIMM_SIZES, quantities: ICE_LAKE_D_DIMM_QUANTITIES },
+  "AX-4520c": { sizes: ICE_LAKE_D_DIMM_SIZES, quantities: ICE_LAKE_D_DIMM_QUANTITIES }
+};
 
 // 🚫 Restrictions: DIMM sizes that cannot be used with certain quantities
 export const dimmRestrictions = {
-  96: [8], // 96GB DIMMs cannot be used in 8-slot configs
-  256: ["AX-4510c", "AX-4520c"], // 256GB DIMMs not supported on Ice Lake D models
-  192: ["AX-4510c", "AX-4520c"],
-  160: ["AX-4510c", "AX-4520c"]
+  96: [8] // 96GB DIMMs cannot be used in 8-slot configs (standard systems only)
 };
 
 // 🧠 Maximum memory per node by chassis model (in GB)
@@ -42,13 +53,14 @@ export function getMaxMemoryPerNode(chassisModel) {
 }
 
 /**
- * Returns valid memory configurations based on DIMM size and quantity.
+ * Returns valid memory configurations based on DIMM size and quantity for a given chassis.
  */
-export function getValidMemoryOptions() {
+export function getValidMemoryOptions(chassisModel = "AX 660") {
+  const config = chassisDimmConfig[chassisModel] || chassisDimmConfig["AX 660"];
   const options = [];
 
-  for (const size of dimmSizesGB) {
-    for (const qty of dimmQuantities) {
+  for (const size of config.sizes) {
+    for (const qty of config.quantities) {
       const restricted = dimmRestrictions[size];
       if (restricted && restricted.includes(qty)) continue;
 
@@ -62,6 +74,22 @@ export function getValidMemoryOptions() {
   }
 
   return options;
+}
+
+/**
+ * Returns valid DIMM sizes for a given chassis model.
+ */
+export function getValidDimmSizes(chassisModel = "AX 660") {
+  const config = chassisDimmConfig[chassisModel] || chassisDimmConfig["AX 660"];
+  return config.sizes;
+}
+
+/**
+ * Returns valid DIMM quantities for a given chassis model.
+ */
+export function getValidDimmQuantities(chassisModel = "AX 660") {
+  const config = chassisDimmConfig[chassisModel] || chassisDimmConfig["AX 660"];
+  return config.quantities;
 }
 
 // 💾 Disk sizes in TB

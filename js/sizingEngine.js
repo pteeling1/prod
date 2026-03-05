@@ -178,12 +178,18 @@ const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5;
         clockBonus;
     } else {
       // N+1 resiliency: use standard scoring
+      // For edge-location chassis (AX-4510c/AX-4520c), favor fewer nodes over sweet spot
+      // These small chassis are designed for edge deployments and should minimize node count
+      const isEdgeChassisModel = (model) => model === 'AX-4510c' || model === 'AX-4520c';
+      const nodePenalty = isEdgeChassisModel(chassisModel) ? 300 : 800;
+      const enableSweetSpot = !isEdgeChassisModel(chassisModel);  // Disable sweet spot for edge chassis
+      
       score =
         totalPhysicalCores * 12 +
-        nodesNeeded * 800 +
+        nodesNeeded * nodePenalty +
         coreOvershoot * 20 +
         (nodesNeeded > 7 ? 2500 : 0) +
-        (sweetSpot ? -3000 : 0) +
+        (enableSweetSpot && sweetSpot ? -3000 : 0) +
         clockBonus;
     }
 cpuScoreLog.push({

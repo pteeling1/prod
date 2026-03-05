@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Batch Sizing Test - NIAG-PSC</title>
+</head>
+<body>
+    <h1>Batch Sizing Tool Test - NIAG-PSC</h1>
+    <pre id="output">Testing...</pre>
+    
+    <script type="module">
+        import { sizeCluster } from './dev/js/sizingEngine.js';
+        
+        // NIAG-PSC input
+        const clusterName = 'NIAG-PSC';
+        const vmCount = 10;
+        const inUseVCPU = 38;
+        const inUseRAM = 25;
+        const inUseDisk = 3.998538684844971;
+        const p2vRatio = 2.375;
+        
+        // Calculate physical cores
+        const inTheCpuCores = Math.round(inUseVCPU / p2vRatio);
+        
+        // Determine chassis model (VM count <= 10 prefer 4510c)
+        let chassisModel = 'AX-4510c';
+        
+        // HA level (N by default, N+1 for redundancy)
+        const haLevel = 'n+1';  // Testing with N+1
+        
+        // Build sizing payload
+        const payload = {
+            totalCPU: inTheCpuCores,
+            totalRAM: inUseRAM,
+            totalStorage: inUseDisk,
+            growthPct: 0,
+            haLevel: haLevel,
+            chassisModel: chassisModel
+        };
+        
+        const output = document.getElementById('output');
+        output.textContent = '';
+        
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+        
+        log(`=== NIAG-PSC Batch Sizing Test ===`);
+        log(`Input: ${vmCount} VMs, ${inUseVCPU} vCPU, P2V=${p2vRatio}`);
+        log(`Calculated Physical Cores: ${inTheCpuCores}`);
+        log(`RAM: ${inUseRAM} GB, Disk: ${inUseDisk} TB`);
+        log(`HA Level: ${haLevel}`);
+        log(`\nTrying chassis models...`);
+        
+        const chassisModelsToTry = vmCount <= 10 
+            ? ['AX-4510c', 'AX 760', 'AX 770']
+            : ['AX 760', 'AX 770'];
+        
+        let sizingResult = null;
+        let finalChassisModel = null;
+        
+        for (const model of chassisModelsToTry) {
+            try {
+                const testPayload = { ...payload, chassisModel: model };
+                log(`\n🔧 Sizing with ${model}...`);
+                sizingResult = sizeCluster(testPayload);
+                finalChassisModel = model;
+                log(`✅ SUCCESS with ${model}!`);
+                log(`   Nodes: ${sizingResult.nodeCount}`);
+                log(`   CPU: ${sizingResult.cpuModel}`);
+                log(`   Cores/Node: ${sizingResult.cpuCoresPerSocket}`);
+                log(`   Total Usable Cores: ${sizingResult.totalUsableCores}`);
+                log(`   P2V Result: ${(inUseVCPU / sizingResult.totalUsableCores).toFixed(3)}`);
+                break;
+            } catch (err) {
+                log(`❌ ${model} failed: ${err.message}`);
+            }
+        }
+        
+        if (sizingResult) {
+            log(`\n=== FINAL RESULT ===`);
+            log(`Chassis: ${finalChassisModel}`);
+            log(`Nodes: ${sizingResult.nodeCount}`);
+            log(`CPU: ${sizingResult.cpuModel}`);
+            log(`Memory: ${sizingResult.memorySizeGB} GB total`);
+            log(`Disks: ${sizingResult.disksPerNode} × ${sizingResult.diskSizeTB} TB per node`);
+            log(`Total Usable Cores: ${sizingResult.totalUsableCores}`);
+            log(`Total Usable Memory: ${sizingResult.totalUsableMemory} GB`);
+            log(`Total Usable Storage: ${sizingResult.usableTiB} TiB`);
+        } else {
+            log(`\n❌ FAILED: No viable chassis model found!`);
+        }
+    </script>
+</body>
+</html>

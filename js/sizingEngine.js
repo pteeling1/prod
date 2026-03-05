@@ -98,7 +98,7 @@ function calculateResourceOvershootPenalty(actual, required, weight = 1, maxPena
 
 // 🎯 Optimized CPU Selection
 
-function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLevel, workloadType, cpuListOverride = cpuList, maxCPUUtilization = 0.60, maxMemoryUtilization = 0.60, chassisModel = "AX 770") {
+function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLevel, workloadType, cpuListOverride = cpuList, maxCPUUtilization = 0.60, maxMemoryUtilization = 0.60, chassisModel = "AX 770", disableSweetSpot = false) {
   if (requiredCores <= 0) throw new Error("Required cores must be greater than 0");
 
   cpuScoreLog.length = 0;  // Clear the log at start of each selection
@@ -182,7 +182,7 @@ const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5;
       // These small chassis are designed for edge deployments and should minimize node count
       const isEdgeChassisModel = (model) => model === 'AX-4510c' || model === 'AX-4520c';
       const nodePenalty = isEdgeChassisModel(chassisModel) ? 300 : 800;
-      const enableSweetSpot = !isEdgeChassisModel(chassisModel);  // Disable sweet spot for edge chassis
+      const enableSweetSpot = !isEdgeChassisModel(chassisModel) && !disableSweetSpot;  // Disable sweet spot for edge chassis or batch mode
       
       score =
         totalPhysicalCores * 12 +
@@ -811,7 +811,8 @@ function sizeCluster(req) {
     switchMode = "separate",
     maxCPUUtilization = 0.60,
     maxMemoryUtilization = 0.60,
-    rackAwareConfig = null  // Optional: '1+1', '2+2', '3+3', '4+4' to constrain sizing
+    rackAwareConfig = null,  // Optional: '1+1', '2+2', '3+3', '4+4' to constrain sizing
+    disableSweetSpot = false  // For batch sizing: disable sweet spot bonus
   } = req;
 
   console.log(`📍 sizeCluster called:`);
@@ -907,7 +908,7 @@ let postFailureCapabilities = null;
         baseCpuSelection = selectOptimalCpuForGHz(totalGHz, adjustedTotalRAM, totalStorage, haLevel, filteredCpuList, chassisModel);
       } else if (totalCPU > 0) {
         primaryConstraint = "Cores";
-        baseCpuSelection = selectOptimalCpuForCores(totalCPU, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel);
+        baseCpuSelection = selectOptimalCpuForCores(totalCPU, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel, disableSweetSpot);
       } else {
         throw new Error("Must specify either totalCPU (cores) or totalGHz requirement");
       }
@@ -915,7 +916,7 @@ let postFailureCapabilities = null;
       console.warn(`⚠️ Primary CPU selection failed: ${err.message}`);
       console.warn("🔁 Falling back to 8-core sizing attempt…");
       try {
-        baseCpuSelection = selectOptimalCpuForCores(8, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel);
+        baseCpuSelection = selectOptimalCpuForCores(8, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel, disableSweetSpot);
         primaryConstraint = "Fallback (8 cores)";
       } catch (fallbackErr) {
         throw new Error(`❌ Fallback sizing also failed: ${fallbackErr.message}`);

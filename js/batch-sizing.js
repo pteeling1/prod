@@ -122,7 +122,8 @@ function processSheetData(rows, sheetName) {
         totalStorage: inTheDiskTB,
         growthPct: 0,
         haLevel: haLevel,
-        chassisModel: chassisModel
+        chassisModel: chassisModel,
+        disableSweetSpot: true  // Batch sizing: minimize node count, disable sweet spot bonus
       };
       
       // Run sizing engine with chassis fallback: AX-4510c → AX-760 → AX-770

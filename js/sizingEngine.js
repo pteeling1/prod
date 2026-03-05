@@ -164,11 +164,11 @@ function selectOptimalCpuForCores(requiredCores, totalRAM, totalStorageTiB, haLe
      // continue;
    // }
 
-    // Sweet spot bonus
+    // Sweet spot bonus - DISABLED: prefer fewer nodes over sweetSpot heuristic
    // const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5 &&
 //                   totalPhysicalCores >= 200 && totalPhysicalCores <= 250;
 
-const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5;
+const sweetSpot = false;  // Prefer fewer nodes over sweetSpot
 
     const clockBonus = cpu.base_clock_GHz * -100; // Higher clock speed gets lower (better) score
 
@@ -183,11 +183,11 @@ const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5;
         totalPhysicalCores * 2 +    // Slight penalty for more cores (2 vs 12)
         clockBonus;
     } else {
-      // N+1 resiliency: use standard scoring
+      // N+1 resiliency: STRONGLY prefer fewer nodes over more cores
       score =
-        totalPhysicalCores * 12 +
-        nodesNeeded * 800 +
-        coreOvershoot * 20 +
+        totalPhysicalCores * 8 +
+        nodesNeeded * 2000 +     // Increased from 800 to 2000 - heavily penalize more nodes
+        coreOvershoot * 15 +
         (nodesNeeded > 7 ? 2500 : 0) +
         (sweetSpot ? -3000 : 0) +
         clockBonus;

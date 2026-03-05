@@ -126,8 +126,8 @@ function processSheetData(rows, sheetName) {
       };
       
       // Run sizing engine with chassis fallback: AX-4510c → AX-760 → AX-770
-      let sizingResult = null;
-      let finalChassisModel = chassisModel;
+      // For batch mode: collect ALL viable results and prefer fewer nodes
+      let sizingResults = [];  // Collect all successful results
       const chassisModelsToTry = vmCount <= 10 
         ? ['AX-4510c', 'AX 760', 'AX 770']  // Small clusters: try 4510c first, then fallback
         : ['AX 760', 'AX 770'];              // Larger clusters: try 760 first, then 770
@@ -136,23 +136,26 @@ function processSheetData(rows, sheetName) {
         try {
           const testPayload = { ...payload, chassisModel: model };
           console.log(`🔧 Sizing ${clusterName} using ${model} (${haLevel}): ${inTheCpuCores}c, ${inTheRamGB}GB, ${inTheDiskTB}TB`);
-          sizingResult = sizeCluster(testPayload);
-          finalChassisModel = model;
-          console.log(`   → Result: nodes=${sizingResult.clusterNodeCount}, model=${sizingResult.chassisModel}, ha=${sizingResult.haLevel}`);
-          break; // Success, stop trying other models
+          const result = sizeCluster(testPayload);
+          console.log(`   → Result: nodes=${result.nodeCount}, model=${result.chassisModel}, ha=${result.haLevel}`);
+          sizingResults.push(result);
         } catch (err) {
           console.warn(`   ⚠️ ${model} sizing failed: ${err.message}`);
-          if (model === chassisModelsToTry[chassisModelsToTry.length - 1]) {
-            // Last model in the list failed, propagate the error
-            throw err;
-          }
-          // Otherwise, continue to next model
         }
       }
       
-      if (!sizingResult) {
+      // For batch sizing: prefer fewer nodes
+      if (sizingResults.length === 0) {
         throw new Error(`Failed to size ${clusterName} with any available chassis model`);
       }
+      
+      // Sort by node count (ascending), prefer smaller deployments
+      sizingResults.sort((a, b) => a.nodeCount - b.nodeCount);
+      const sizingResult = sizingResults[0];
+      const finalChassisModel = sizingResult.chassisModel;
+      
+      console.log(`   ✅ Selected ${finalChassisModel} with ${sizingResult.nodeCount} nodes (preferred for batch)`);
+      
       
       results.push({
         clusterName,

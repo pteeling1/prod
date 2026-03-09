@@ -143,7 +143,7 @@ export const clusterSizes = Array.from({ length: 16 }, (_, i) => i + 1);
 
 // ⚙️ Sizing constraints
 export const sizingConstraints = {
-  maxClusterSize: 7, // clusters larger than this should be split
+  maxClusterSize: 6, // clusters larger than this should be split
   minClusterSize: 1,
   // maxTotalNodes: 16 // optional UI or export constraint
 };

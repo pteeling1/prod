@@ -1205,9 +1205,9 @@ Deployment
                 <div class="article">
                     <p class="article-text">Start by removing the Arc Resource Bridge that was automatically created during Azure Local setup.</p>
 
-                    <p class="article-text">Using PowerShell or the Azure CLI:</p>
+                    <p class="article-text">Using the Azure CLI:</p>
 
-                    <pre style="background: #f3f4f6; padding: 1em; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto;">Remove-AksHci -ArcResource -Force</pre>
+                    <pre style="background: #f3f4f6; padding: 1em; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto;">az aksarc delete --name <cluster-name> --resource-group <resource-group> --yes --no-wait</pre>
 
                     <p class="article-text">Or via Azure CLI for Arc-managed resources. The operation will clean up the associated Kubernetes cluster and all its networking configurations.</p>
                 </div>
@@ -1219,17 +1219,25 @@ Deployment
                 <div class="article">
                     <p class="article-text">Once removed, you can deploy a new AKS Arc instance with custom networking parameters:</p>
 
-                    <pre style="background: #f3f4f6; padding: 1em; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto;">New-AksHci -Name <your-cluster-name> `
-  -ServiceCidr <your-service-cidr> `
-  -PodCidr <your-pod-cidr> `
-  -DnsServiceIP <your-dns-service-ip></pre>
+                    <pre style="background: #f3f4f6; padding: 1em; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto;">az aksarc create \
+    --resource-group <resource-group> \
+    --name <cluster-name> \
+    --custom-location <custom-location> \
+    --vnet-ids <vnet-id> \
+    --service-cidr <your-service-cidr> \
+    --dns-service-ip <your-dns-service-ip> \
+    --pod-cidr <your-pod-cidr></pre>
 
                     <p class="article-text"><strong>Example with custom ranges:</strong></p>
 
-                    <pre style="background: #f3f4f6; padding: 1em; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto;">New-AksHci -Name azlocal-aks `
-  -ServiceCidr 172.20.0.0/16 `
-  -PodCidr 172.21.0.0/16 `
-  -DnsServiceIP 172.20.0.10</pre>
+                    <pre style="background: #f3f4f6; padding: 1em; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto;">az aksarc create \
+    --resource-group myResourceGroup \
+    --name myAKSCluster \
+    --custom-location myCustomLocation \
+    --vnet-ids myLogicalNetworkId \
+    --service-cidr 172.20.0.0/16 \
+    --dns-service-ip 172.20.0.10 \
+    --pod-cidr 10.244.0.0/16</pre>
 
                     <p class="article-text">Replace the ranges with whatever fits your environment, as long as they don't collide with your existing infrastructure.</p>
                 </div>

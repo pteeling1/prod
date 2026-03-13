@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Local Reserved IP Ranges - Teeling Cloud Courant</title>
+    <meta name="description" content="A recovery path when your datacenter network overlaps with Microsoft's reserved IP ranges. Learn how to deploy Azure Local and reconfigure the Arc Resource Bridge with custom CIDRs.">
+    <link href="https://fonts.googleapis.com/css2?family=Germania+One&family=Inter:wght@400;500;600;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/blog-colors.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafaf8;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 3px solid var(--color-american-sapphire);
+            padding: 40px 0 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-back {
+            margin-bottom: 15px;
+        }
+
+        .nav-back a {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .nav-back a:hover {
+            color: #1a2332;
+        }
+
+        .masthead {
+            font-family: 'Germania One', cursive;
+            font-size: 72px;
+            color: var(--color-american-sapphire);
+            text-align: center;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-weight: 400;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        .tagline {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        /* Navigation Banner */
+        .nav-banner {
+            background: var(--color-american-sapphire);
+            border-bottom: none;
+            padding: 16px 0;
+            margin-bottom: 30px;
+        }
+
+        .nav-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-banner-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            font-family: 'Merriweather', serif;
+            font-weight: 900;
+            font-size: 18px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-banner-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-dutch-orange);
+        }
+
+        /* Main Content */
+        .main-content {
+            background: #ffffff;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        /* Article header navigation */
+        .article-header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .back-button {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: var(--color-dutch-orange);
+        }
+
+        /* Share section */
+        .share-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .share-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .share-button:hover {
+            background-color: #f0f0f0;
+            color: var(--color-dutch-orange);
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .article-title {
+            font-family: 'Merriweather', serif;
+            font-size: 32px;
+            font-weight: 900;
+            color: #1a2332;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+
+        .article-subtitle {
+            font-size: 16px;
+            color: #6b7280;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        .article-byline {
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .columns {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: start;
+        }
+
+        .columns.full-width {
+            grid-template-columns: 1fr;
+        }
+
+        .article {
+            grid-column: 1;
+        }
+
+        .article.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .article-text {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        .article-headline {
+            font-family: 'Merriweather', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 25px 0 12px 0;
+        }
+
+        .article-list {
+            list-style: none;
+            margin-left: 0;
+            padding-left: 0;
+            margin-bottom: 15px;
+        }
+
+        .article-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .article-list li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--color-dutch-orange);
+            font-weight: 600;
+        }
+
+        .sidebar-box {
+            background: #f3f4f6;
+            border-left: 4px solid var(--color-dutch-orange);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-box-title {
+            font-family: 'Merriweather', serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-american-sapphire);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-box-content {
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .sidebar-box-content ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .sidebar-box-content li {
+            position: relative;
+            padding-left: 18px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-box-content li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--color-dutch-orange);
+            font-weight: 700;
+        }
+
+        .section-header {
+            font-family: 'Merriweather', serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--color-american-sapphire);
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--color-dutch-orange);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .quote-box {
+            background: linear-gradient(135deg, var(--color-american-sapphire-light), var(--color-american-sapphire));
+            border-left: 4px solid var(--color-dutch-orange);
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+
+        .quote-text {
+            font-family: 'Merriweather', serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .quote-attribution {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        pre {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-left: 4px solid var(--color-dutch-orange);
+        }
+
+        /* Footer */
+        .site-footer {
+            background: var(--color-american-sapphire);
+            color: #ffffff;
+            padding: 40px 0;
+            margin-top: 60px;
+        }
+
+        .footer-disclaimer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .footer-disclaimer h3 {
+            color: var(--color-dutch-orange);
+            margin-bottom: 12px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .footer-disclaimer p {
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0.95;
+        }
+
+        @media (max-width: 768px) {
+            .columns {
+                grid-template-columns: 1fr;
+            }
+
+            .article-title {
+                font-size: 24px;
+            }
+
+            .masthead {
+                font-size: 48px;
+            }
+
+            .nav-banner-item {
+                font-size: 14px;
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav-back">
+                <a href="../"><i class="bi bi-arrow-left"></i> Back to All Articles</a>
+            </div>
+            <h1 class="masthead">Teeling Cloud Courant</h1>
+            <p class="tagline">Hybrid cloud insights from the field</p>
+        </div>
+    </div>
+
+    <div class="nav-banner">
+        <div class="container">
+            <div class="nav-banner-content">
+                <a href="https://sizer.teeling.ai" class="nav-banner-item">
+                    <i class="bi bi-arrow-right"></i> Sizing Tool
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="article-header-nav">
+                <a href="../" class="back-button"><i class="bi bi-arrow-left"></i> Back to Articles</a>
+                <div class="share-section">
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fwww.teeling.ai%2Fblogs%2Freserved-ips.html" target="_blank" class="share-button" title="Share on LinkedIn"><i class="bi bi-linkedin"></i> Share</a>
+                    <button class="share-button" onclick="copyToClipboard('https://www.teeling.ai/blogs/reserved-ips.html', this)" title="Copy article link"><i class="bi bi-link-45deg"></i> Copy Link</button>
+                </div>
+            </div>
+            <div class="content-header">
+                <h1 class="article-title">When Azure Local's Reserved IP Ranges Collide With Your Network</h1>
+                <p class="article-subtitle">A recovery path when your datacenter network overlaps with Microsoft's reserved ranges</p>
+                <p class="article-byline">By Pieter Teeling • Azure Local Deployment</p>
+            </div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">Microsoft's documentation for Azure Local includes a strict requirement:</p>
+                    
+                    <p class="article-text"><strong>Two IP ranges must not be used anywhere in your Azure Local deployment:</strong></p>
+                    
+                    <ul class="article-list">
+                        <li><strong>10.96.0.0/12</strong> — Reserved for Kubernetes services</li>
+                        <li><strong>10.244.0.0/16</strong> — Reserved for Kubernetes pod networking</li>
+                    </ul>
+
+                    <p class="article-text">These ranges are reserved for internal Azure Local and AKS Arc components. If your existing datacenter network uses any part of these blocks — and many do — deployment can fail or behave unpredictably.</p>
+
+                    <p class="article-text">This is especially common with 10.244.0.0/16, which appears in many legacy Kubernetes clusters, lab environments, and inherited network designs.</p>
+
+                    <p class="article-text">Microsoft's guidance is simple: <strong>don't use these ranges</strong>.</p>
+
+                    <p class="article-text">But real customer networks are rarely simple.</p>
+
+                    <ul class="article-list">
+                        <li><strong>Sometimes you inherit a network.</strong></li>
+                        <li><strong>Sometimes you're mid‑migration.</strong></li>
+                        <li><strong>Sometimes you discover the overlap only after Azure Local deployment has already begun.</strong></li>
+                    </ul>
+
+                    <p class="article-text">Fortunately, there is a clean, repeatable workaround.</p>
+                </div>
+            </div>
+
+            <div class="section-header">The Workaround: Deploy First, Then Re‑Create the Arc Resource Bridge</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Azure Local enforces reserved‑range validation during deployment. But Arc Resource Bridge (ARB) — the component that hosts AKS on Azure Local — can be safely deleted and re‑created afterward.</p>
+
+                    <p class="article-text">This gives you a path forward:</p>
+
+                    <ol class="article-list">
+                        <li><strong>Deploy Azure Local</strong> using the IPs you want, even if they overlap with Microsoft's reserved ranges.</li>
+                        <li><strong>Delete the automatically created AKS Arc instance.</strong></li>
+                        <li><strong>Re‑create it manually</strong> with your own service CIDR, pod CIDR, and DNS service IP.</li>
+                    </ol>
+
+                    <p class="article-text">This allows you to avoid the reserved ranges and avoid redesigning your entire network.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Step 1 — Delete the Default AKS Arc Instance</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Start by removing the Arc Resource Bridge that was automatically created during Azure Local setup.</p>
+
+                    <p class="article-text">Using PowerShell or the Azure CLI:</p>
+
+                    <pre>Remove-AksHci -ArcResource -Force</pre>
+
+                    <p class="article-text">Or via Azure CLI for Arc-managed resources. The operation will clean up the associated Kubernetes cluster and all its networking configurations.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Step 2 — Re‑Create AKS Arc With Your Own IP Ranges</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Once removed, you can deploy a new AKS Arc instance with custom networking parameters:</p>
+
+                    <pre>New-AksHci -Name &lt;your-cluster-name&gt; `
+  -ServiceCidr &lt;your-service-cidr&gt; `
+  -PodCidr &lt;your-pod-cidr&gt; `
+  -DnsServiceIP &lt;your-dns-service-ip&gt;</pre>
+
+                    <p class="article-text"><strong>Example with custom ranges:</strong></p>
+
+                    <pre>New-AksHci -Name azlocal-aks `
+  -ServiceCidr 172.20.0.0/16 `
+  -PodCidr 172.21.0.0/16 `
+  -DnsServiceIP 172.20.0.10</pre>
+
+                    <p class="article-text">Replace the ranges with whatever fits your environment, as long as they don't collide with your existing infrastructure.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Important Notes</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text"><strong>The DNS service IP must always end in .10</strong> — The specific octet is non‑negotiable for AKS Arc.</p>
+
+                    <p class="article-text"><strong>The service CIDR and pod CIDR can be anything</strong> that fits your environment, as long as they don't overlap with the rest of your network.</p>
+
+                    <p class="article-text"><strong>This process modifies only the ARB/AKS layer</strong> — not your Azure Local deployment itself. Your VM hosts, storage, and fabric remain unchanged.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Why This Works</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Azure Local enforces reserved ranges during deployment because ARB and AKS rely on them internally. But once the system is deployed, you can override the Kubernetes networking configuration by re‑creating the AKS Arc instance.</p>
+
+                    <p class="article-text">This gives customers with constrained or inherited networks a viable path forward <strong>without renumbering DNS servers, proxies, gateways, or entire IP blocks.</strong></p>
+
+                    <p class="article-text">It's not documented. It's not obvious. But it's fully supported because you're using standard lifecycle operations.</p>
+                </div>
+            </div>
+
+            <div class="section-header">When This Workaround Makes Sense</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Use this approach when:</p>
+
+                    <ul class="article-list">
+                        <li><strong>Your existing network uses 10.96.0.0/12 or 10.244.0.0/16.</strong></li>
+                        <li><strong>You cannot renumber critical infrastructure.</strong></li>
+                        <li><strong>You want to deploy Azure Local now,</strong> not after a long network redesign.</li>
+                        <li><strong>You need AKS Arc to run with custom service/pod CIDRs.</strong></li>
+                    </ul>
+
+                    <p class="article-text">It's also a great recovery path when the initial deployment fails due to IP conflicts and you want to avoid tearing everything down.</p>
+                </div>
+            </div>
+
+            <div class="section-header">The Bottom Line</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Azure Local's reserved IP ranges are strict — but they don't have to be blockers.</p>
+
+                    <p class="article-text">By deploying first and re‑creating the Arc Resource Bridge with your own CIDRs, you can run Azure Local in networks that would otherwise be incompatible.</p>
+
+                    <p class="article-text">This is one of those real‑world hybrid‑cloud challenges that customers hit all the time. Now you've got a clean, repeatable way to handle it.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-disclaimer">
+            <h3>Disclaimer</h3>
+            <p>The views and opinions expressed on this website are solely my own and do not reflect the official positions of Dell Technologies, Microsoft, or any other affiliated organizations. All content is provided for informational purposes only.</p>
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard(url, button) {
+            navigator.clipboard.writeText(url).then(() => {
+                const originalContent = button.innerHTML;
+                button.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+    </script>
+</body>
+</html>

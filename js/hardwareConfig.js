@@ -27,10 +27,10 @@ export const dimmRestrictions = {
 
 // 🧠 Maximum memory per node by chassis model (in GB)
 export const chassisMemoryLimits = {
-  "AX 660": 2048, // Standard assumption
-  "AX 670": 2048,
-  "AX 760": 2048,
-  "AX 770": 2048,
+  "AX 660": 4096, // 32 x 128GB DIMMs
+  "AX 670": 4096, // 32 x 128GB DIMMs
+  "AX 760": 4096, // 32 x 128GB DIMMs
+  "AX 770": 4096, // 32 x 128GB DIMMs
   "AX-4510c": 512, // 4 x 128GB max (DDR5-3200)
   "AX-4520c": 512  // 4 x 128GB max (DDR5-3200)
 };

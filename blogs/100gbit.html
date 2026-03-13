@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Making the Case for 100 GbE Networking - Teeling Cloud Courant</title>
+    <meta name="description" content="Why dense NVMe nodes change the networking conversation sooner than most designs expect. Explore the economics and architecture of 100 GbE for Azure Local and Storage Spaces Direct.">
+    <link href="https://fonts.googleapis.com/css2?family=Germania+One&family=Inter:wght@400;500;600;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/blog-colors.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafaf8;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 3px solid var(--color-american-sapphire);
+            padding: 40px 0 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-back {
+            margin-bottom: 15px;
+        }
+
+        .nav-back a {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .nav-back a:hover {
+            color: #1a2332;
+        }
+
+        .masthead {
+            font-family: 'Germania One', cursive;
+            font-size: 72px;
+            color: var(--color-american-sapphire);
+            text-align: center;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-weight: 400;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        .tagline {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        /* Navigation Banner */
+        .nav-banner {
+            background: var(--color-american-sapphire);
+            border-bottom: none;
+            padding: 16px 0;
+            margin-bottom: 30px;
+        }
+
+        .nav-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-banner-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            font-family: 'Merriweather', serif;
+            font-weight: 900;
+            font-size: 18px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-banner-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-dutch-orange);
+        }
+
+        /* Main Content */
+        .main-content {
+            background: #ffffff;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        /* Article header navigation */
+        .article-header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .back-button {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: var(--color-dutch-orange);
+        }
+
+        /* Share section */
+        .share-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .share-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .share-button:hover {
+            background-color: #f0f0f0;
+            color: var(--color-dutch-orange);
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .article-title {
+            font-family: 'Merriweather', serif;
+            font-size: 32px;
+            font-weight: 900;
+            color: #1a2332;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+
+        .article-subtitle {
+            font-size: 16px;
+            color: #6b7280;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        .article-byline {
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .columns {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: start;
+        }
+
+        .columns.full-width {
+            grid-template-columns: 1fr;
+        }
+
+        .article {
+            grid-column: 1;
+        }
+
+        .article.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .article-text {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        .article-headline {
+            font-family: 'Merriweather', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 25px 0 12px 0;
+        }
+
+        .article-list {
+            list-style: none;
+            margin-left: 0;
+            padding-left: 0;
+            margin-bottom: 15px;
+        }
+
+        .article-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .article-list li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--color-dutch-orange);
+            font-weight: 600;
+        }
+
+        .sidebar-box {
+            background: #f3f4f6;
+            border-left: 4px solid var(--color-dutch-orange);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-box-title {
+            font-family: 'Merriweather', serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-american-sapphire);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-box-content {
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .sidebar-box-content ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .sidebar-box-content li {
+            position: relative;
+            padding-left: 18px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-box-content li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--color-dutch-orange);
+            font-weight: 700;
+        }
+
+        .section-header {
+            font-family: 'Merriweather', serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--color-american-sapphire);
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--color-dutch-orange);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .quote-box {
+            background: linear-gradient(135deg, var(--color-american-sapphire-light), var(--color-american-sapphire));
+            border-left: 4px solid var(--color-dutch-orange);
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+
+        .quote-text {
+            font-family: 'Merriweather', serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .quote-attribution {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        pre {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-left: 4px solid var(--color-dutch-orange);
+        }
+
+        /* Footer */
+        .site-footer {
+            background: var(--color-american-sapphire);
+            color: #ffffff;
+            padding: 40px 0;
+            margin-top: 60px;
+        }
+
+        .footer-disclaimer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .footer-disclaimer h3 {
+            color: var(--color-dutch-orange);
+            margin-bottom: 12px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .footer-disclaimer p {
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0.95;
+        }
+
+        @media (max-width: 768px) {
+            .columns {
+                grid-template-columns: 1fr;
+            }
+
+            .article-title {
+                font-size: 24px;
+            }
+
+            .masthead {
+                font-size: 48px;
+            }
+
+            .nav-banner-item {
+                font-size: 14px;
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav-back">
+                <a href="../"><i class="bi bi-arrow-left"></i> Back to All Articles</a>
+            </div>
+            <h1 class="masthead">Teeling Cloud Courant</h1>
+            <p class="tagline">Hybrid cloud insights from the field</p>
+        </div>
+    </div>
+
+    <div class="nav-banner">
+        <div class="container">
+            <div class="nav-banner-content">
+                <a href="https://sizer.teeling.ai" class="nav-banner-item">
+                    <i class="bi bi-arrow-right"></i> Sizing Tool
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="article-header-nav">
+                <a href="../" class="back-button"><i class="bi bi-arrow-left"></i> Back to Articles</a>
+                <div class="share-section">
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fwww.teeling.ai%2Fblogs%2F100gbit.html" target="_blank" class="share-button" title="Share on LinkedIn"><i class="bi bi-linkedin"></i> Share</a>
+                    <button class="share-button" onclick="copyToClipboard('https://www.teeling.ai/blogs/100gbit.html', this)" title="Copy article link"><i class="bi bi-link-45deg"></i> Copy Link</button>
+                </div>
+            </div>
+            <div class="content-header">
+                <h1 class="article-title">Making the Case for 100 GbE Networking with Azure Local and Storage Spaces Direct</h1>
+                <p class="article-subtitle">Why dense NVMe nodes change the networking conversation sooner than most designs expect</p>
+                <p class="article-byline">By Pieter Teeling • Azure Local Architecture</p>
+            </div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">As NVMe becomes the default choice for modern hyperconverged infrastructure, one question comes up repeatedly in both Storage Spaces Direct (S2D) and Azure Local designs:
+
+When does 100 GbE networking actually make sense?
+
+For many years, 10 GbE — and later 25 GbE — was sufficient for most storage workloads. Even today, dual‑port 25 GbE designs are often considered "more than enough." But once you start building dense all‑NVMe nodes, those assumptions begin to break down.
+
+This article explains why 100 GbE becomes justified earlier than expected in all‑NVMe S2D and Azure Local deployments, why roughly 12 NVMe drives per node is a practical, conservative inflection point, how the economics of 4 × 25 GbE versus 2 × 100 GbE work out in real designs, and why the same logic applies across vendors like Dell and Cisco.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Design Assumptions (Made Explicit)</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Before going further, it's important to anchor the discussion in realistic design practice:</p>
+
+                    <p class="article-text">No serious production S2D or Azure Local design uses a single storage network port. All scenarios discussed here assume:</p>
+                    
+                    <ul class="article-list">
+                        <li>At least two network ports per node</li>
+                        <li>SMB Multichannel enabled</li>
+                        <li>SMB Direct (RDMA) in use</li>
+                        <li>A baseline of 2 × 25 GbE networking for storage/compute traffic</li>
+                    </ul>
+
+                    <p class="article-text">This reflects real‑world Azure Stack HCI and Azure Local designs and avoids straw‑man comparisons like "100 GbE vs a single 10 GbE link."</p>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">What This Article Covers</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li>Why 100 GbE becomes justified earlier than expected</li>
+                                <li>Why roughly 12 NVMe drives per node is the practical inflection point</li>
+                                <li>How the economics of 4 × 25 GbE versus 2 × 100 GbE work out in real designs</li>
+                                <li>Why the same logic applies across vendors (Dell, Cisco)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">How NVMe Moves the Bottleneck to the Network</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">A single enterprise NVMe drive is capable of multiple gigabytes per second of throughput. When a node contains 12, 16, or 24 NVMe drives, the aggregate storage capability becomes enormous.
+
+In Storage Spaces Direct, all east‑west storage traffic — including mirrored writes — flows over the network using SMB 3 with RDMA. Azure Local uses the same underlying S2D mechanisms for its local storage.</p>
+
+                    <p class="article-text">As NVMe density increases, the limiting factor stops being the media and quickly becomes available network bandwidth. At that point:</p>
+                    
+                    <ul class="article-list">
+                        <li>Adding more NVMe increases peak potential</li>
+                        <li>But does not improve realized performance unless the network scales with it</li>
+                        <li>If the network doesn't keep up, you effectively pay for NVMe performance that never reaches the workload</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-header">What VMFleet Tells Us About Real‑World Limits</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">VMFleet, Microsoft's official S2D performance and validation tool, is designed to generate highly parallel I/O, stress storage, CPU, and network simultaneously, and expose architectural bottlenecks rather than idealized peaks.
+
+In all‑NVMe S2D clusters, VMFleet runs consistently show that nodes can sustain well over 5 GB/s of storage throughput, network links saturate before NVMe does, and scaling flattens once aggregate NIC bandwidth is consumed.
+
+This behavior appears even when SMB Multichannel is active and multiple NICs are available. Azure Local, running on the same S2D foundations, exhibits the same pattern when you push it with dense NVMe and realistic I/O mixes.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Dual‑Port 25 GbE: Good, But Not a 50 GbE Pipe</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">With 2 × 25 GbE, SMB Multichannel allows traffic to flow across both links concurrently. This meaningfully increases available bandwidth compared to a single port, but it's not a perfect doubling.</p>
+                    
+                    <p class="article-text">It's crucial to understand what SMB Multichannel does — and does not — provide:</p>
+                    
+                    <ul class="article-list">
+                        <li>It balances connections, not individual I/O operations</li>
+                        <li>Storage traffic includes replica writes, metadata, and control flows</li>
+                        <li>Mirror traffic competes with client I/O for the same NICs</li>
+                        <li>Utilization across ports is rarely perfectly even under sustained load</li>
+                    </ul>
+
+                    <p class="article-text">As a result, dual‑port 25 GbE does not behave like a single flat 50 GbE pipe for storage workloads.</p>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">Practical Per‑Node Reality with 2 × 25 GbE</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li><strong>Theoretical aggregate bandwidth:</strong> 6.25 GB/s</li>
+                                <li><strong>Realistic sustained throughput:</strong> 4.5–5.0 GB/s</li>
+                                <li><strong>Common VMFleet ceiling:</strong> ~5 GB/s</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <p class="article-text" style="margin-top: 20px;">That's a substantial improvement over a single link — but it's also a ceiling that dense NVMe nodes can hit surprisingly quickly.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Where NVMe Density Meets the Network Ceiling</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">Once we assume 2 × 25 GbE as the baseline, a clear pattern emerges:</p>
+                    
+                    <ul class="article-list">
+                        <li><strong>NVMe drives per node: ≤ 8</strong> — Network rarely limits performance</li>
+                        <li><strong>NVMe drives per node: ~12</strong> — Network pressure becomes visible under sustained load</li>
+                        <li><strong>NVMe drives per node: 16+</strong> — Network is consistently the bottleneck in stress scenarios</li>
+                    </ul>
+
+                    <p class="article-text">At roughly 12 NVMe drives per node, the node is often capable of driving more throughput than dual‑port 25 GbE can sustain under continuous load. Beyond that point, performance gains from additional NVMe are increasingly constrained by the network.
+
+This is the point where 100 GbE stops being "nice to have" and becomes architecturally justified.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Why 100 GbE Changes the Equation</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Moving to 100 GbE does more than increase peak bandwidth:</p>
+                    
+                    <ul class="article-list">
+                        <li>It removes the network as the primary limiter</li>
+                        <li>It improves performance consistency under contention</li>
+                        <li>It provides headroom for growth and future workloads</li>
+                        <li>It avoids costly retrofits later (re‑cabling, new switches, downtime)</li>
+                    </ul>
+
+                    <p class="article-text">With dual‑port 100 GbE:</p>
+
+                    <ul class="article-list">
+                        <li>Aggregate bandwidth is high enough that storage or CPU once again become the limiting factors</li>
+                        <li>NVMe density can scale without immediately flattening performance</li>
+                        <li>The system behaves as customers expect when they invest in NVMe: adding drives actually results in more usable performance</li>
+                    </ul>
+
+                    <p class="article-text">This is why many all‑NVMe S2D and Azure Local reference architectures move directly to 100 GbE rather than trying to "stretch" 25 GbE with additional ports.</p>
+                </div>
+
+                <div>
+                    <div class="quote-box">
+                        <p class="quote-text">"The hybrid cloud is no longer a compromise—it's the optimal architecture for modern business."</p>
+                        <p class="quote-attribution">— Core principle in modern HCI design</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">The Real Design Choice: 4 × 25 GbE vs 2 × 100 GbE</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">Once you've decided that a single dual‑port design won't scale to your NVMe density, you face a practical choice:</p>
+
+                    <h3 class="article-headline">Option A: Four Ports of 25 GbE (4 × 25)</h3>
+
+                    <ul class="article-list">
+                        <li>Theoretical aggregate: ~12.5 GB/s</li>
+                        <li>More mature ecosystem (widely deployed)</li>
+                        <li>Easier to find replacement NICs and cable support</li>
+                        <li>Scales in smaller increments</li>
+                        <li>Higher operational management (more ports to maintain, monitor, troubleshoot)</li>
+                        <li>More switch port consumption for the same throughput</li>
+                    </ul>
+
+                    <h3 class="article-headline">Option B: Two Ports of 100 GbE (2 × 100)</h3>
+
+                    <ul class="article-list">
+                        <li>Theoretical aggregate: ~25 GB/s</li>
+                        <li>Lower operational overhead (fewer ports, fewer cables, simpler monitoring)</li>
+                        <li>Smaller physical footprint (fewer slots in the host)</li>
+                        <li>Single switch port per NIC (lower density consumption)</li>
+                        <li>Growing ecosystem (increasingly common in new hardware)</li>
+                        <li>Still more expensive per port (though total cost can be competitive)</li>
+                    </ul>
+
+                    <p class="article-text">For dense all‑NVMe configurations with 12+ drives per node, 2 × 100 GbE is becoming the cleaner, simpler, and more cost‑justifiable choice — even when factoring in the per‑port NIC cost.</p>
+                </div>
+            </div>
+
+            <div class="section-header">A Simple, Defensible Rule of Thumb</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text"><strong>If you're building a node with 12 or more NVMe drives, plan for 100 GbE networking from the start.</strong></p>
+
+                    <p class="article-text">This isn't a hard constraint. You can certainly run 12 drives with dual‑port 25 GbE, and performance will still be good for many workloads. But you'll likely find the network limiting further scaling, and you'll have missed the opportunity for a cleaner, more operational design.</p>
+
+                    <p class="article-text">If you start with 100 GbE on a 12-drive node, you have clear headroom for:</p>
+
+                    <ul class="article-list">
+                        <li>Future NVMe additions without network rework</li>
+                        <li>VM-to-VM traffic growth</li>
+                        <li>Management and replication traffic that compete for the same pipes</li>
+                    </ul>
+
+                    <p class="article-text">For smaller nodes (4–8 drives), dual‑port 25 GbE is appropriate and cost-effective.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Conclusion</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">The economics and architecture of all‑NVMe Storage Spaces Direct and Azure Local deployments have shifted. NVMe is no longer the bottleneck; the network is. At around 12 drives per node, that bottleneck becomes actively visible, and 100 GbE transitions from "nice to have" to "required for proper scale."
+
+Whether you choose 4 × 25 GbE or 2 × 100 GbE, the answer depends on your operational preferences and total cost model. But for designs with dense NVMe, skipping the networking upgrade is a false economy.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-disclaimer">
+            <h3>Disclaimer</h3>
+            <p>The views and opinions expressed on this website are solely my own and do not reflect the official positions of Dell Technologies, Microsoft, or any other affiliated organizations. All content is provided for informational purposes only.</p>
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard(url, button) {
+            navigator.clipboard.writeText(url).then(() => {
+                const originalContent = button.innerHTML;
+                button.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+    </script>
+</body>
+</html>

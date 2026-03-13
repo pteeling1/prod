@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Local Support Deadlines - Teeling Cloud Courant</title>
+    <meta name="description" content="Azure Local's 22H2 and 23H2 releases are on borrowed time. Learn about support deadlines, stretched clusters, rack-aware clustering, and your migration path to 24H2.">
+    <link href="https://fonts.googleapis.com/css2?family=Germania+One&family=Inter:wght@400;500;600;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/blog-colors.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fafaf8;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-bottom: 3px solid var(--color-american-sapphire);
+            padding: 40px 0 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-back {
+            margin-bottom: 15px;
+        }
+
+        .nav-back a {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .nav-back a:hover {
+            color: #1a2332;
+        }
+
+        .masthead {
+            font-family: 'Germania One', cursive;
+            font-size: 72px;
+            color: var(--color-american-sapphire);
+            text-align: center;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            font-weight: 400;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+
+        .tagline {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        /* Navigation Banner */
+        .nav-banner {
+            background: var(--color-american-sapphire);
+            border-bottom: none;
+            padding: 16px 0;
+            margin-bottom: 30px;
+        }
+
+        .nav-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-banner-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+            text-decoration: none;
+            font-family: 'Merriweather', serif;
+            font-weight: 900;
+            font-size: 18px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-banner-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-dutch-orange);
+        }
+
+        /* Main Content */
+        .main-content {
+            background: #ffffff;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        /* Article header navigation */
+        .article-header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .back-button {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: var(--color-dutch-orange);
+        }
+
+        /* Share section */
+        .share-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .share-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .share-button:hover {
+            background-color: #f0f0f0;
+            color: var(--color-dutch-orange);
+        }
+
+        .content-header {
+            margin-bottom: 30px;
+        }
+
+        .article-title {
+            font-family: 'Merriweather', serif;
+            font-size: 32px;
+            font-weight: 900;
+            color: #1a2332;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+
+        .article-subtitle {
+            font-size: 16px;
+            color: #6b7280;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+
+        .article-byline {
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .columns {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            align-items: start;
+        }
+
+        .columns.full-width {
+            grid-template-columns: 1fr;
+        }
+
+        .article {
+            grid-column: 1;
+        }
+
+        .article.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .article-text {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        .article-headline {
+            font-family: 'Merriweather', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a2332;
+            margin: 25px 0 12px 0;
+        }
+
+        .article-list {
+            list-style: none;
+            margin-left: 0;
+            padding-left: 0;
+            margin-bottom: 15px;
+        }
+
+        .article-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .article-list li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--color-dutch-orange);
+            font-weight: 600;
+        }
+
+        .sidebar-box {
+            background: #f3f4f6;
+            border-left: 4px solid var(--color-dutch-orange);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-box-title {
+            font-family: 'Merriweather', serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-american-sapphire);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-box-content {
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .sidebar-box-content ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .sidebar-box-content li {
+            position: relative;
+            padding-left: 18px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-box-content li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--color-dutch-orange);
+            font-weight: 700;
+        }
+
+        .section-header {
+            font-family: 'Merriweather', serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--color-american-sapphire);
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--color-dutch-orange);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .quote-box {
+            background: linear-gradient(135deg, var(--color-american-sapphire-light), var(--color-american-sapphire));
+            border-left: 4px solid var(--color-dutch-orange);
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+
+        .quote-text {
+            font-family: 'Merriweather', serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .quote-attribution {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        pre {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-left: 4px solid var(--color-dutch-orange);
+        }
+
+        /* Footer */
+        .site-footer {
+            background: var(--color-american-sapphire);
+            color: #ffffff;
+            padding: 40px 0;
+            margin-top: 60px;
+        }
+
+        .footer-disclaimer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .footer-disclaimer h3 {
+            color: var(--color-dutch-orange);
+            margin-bottom: 12px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .footer-disclaimer p {
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0.95;
+        }
+
+        @media (max-width: 768px) {
+            .columns {
+                grid-template-columns: 1fr;
+            }
+
+            .article-title {
+                font-size: 24px;
+            }
+
+            .masthead {
+                font-size: 48px;
+            }
+
+            .nav-banner-item {
+                font-size: 14px;
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav-back">
+                <a href="../"><i class="bi bi-arrow-left"></i> Back to All Articles</a>
+            </div>
+            <h1 class="masthead">Teeling Cloud Courant</h1>
+            <p class="tagline">Hybrid cloud insights from the field</p>
+        </div>
+    </div>
+
+    <div class="nav-banner">
+        <div class="container">
+            <div class="nav-banner-content">
+                <a href="https://sizer.teeling.ai" class="nav-banner-item">
+                    <i class="bi bi-arrow-right"></i> Sizing Tool
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="article-header-nav">
+                <a href="../" class="back-button"><i class="bi bi-arrow-left"></i> Back to Articles</a>
+                <div class="share-section">
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fwww.teeling.ai%2Fblogs%2Fazure-local.html" target="_blank" class="share-button" title="Share on LinkedIn"><i class="bi bi-linkedin"></i> Share</a>
+                    <button class="share-button" onclick="copyToClipboard('https://www.teeling.ai/blogs/azure-local.html', this)" title="Copy article link"><i class="bi bi-link-45deg"></i> Copy Link</button>
+                </div>
+            </div>
+            <div class="content-header">
+                <h1 class="article-title">Azure Local Support Deadlines, Stretched Clusters, and Rack‑Aware</h1>
+                <p class="article-subtitle">What You Need to Do Before April 2026</p>
+                <p class="article-byline">By Pieter Teeling • Azure Local Lifecycle</p>
+            </div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">Still on 22H2? Running a stretched cluster? Or sitting on 23H2 hoping it buys you time?
+
+This is your wake‑up call — with clear facts and supported directions, not "just wait."</p>
+                </div>
+            </div>
+
+            <div class="section-header">Why April 2026 Matters</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Azure Local (formerly Azure Stack HCI) has moved away from the old annual 22H2 / 23H2 cadence to a monthly release train with versions like 2507, 2508, 2509, and so on. These monthly releases align to a specific OS build (for example, 24H2 = 26100.xxxx) and follow Microsoft's Modern Lifecycle model, which requires customers to stay within six months of the latest release to remain supported.
+
+That change is good for features and fixes — but it also means older H2 releases have a hard runway.</p>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">Key Support Dates</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li><strong>22H2 OS (20349.xxxx)</strong> — Reached end of support May 31, 2025</li>
+                                <li><strong>23H2 with Solution</strong> — Final release 11.2510 (October 2025), supported until April 2026</li>
+                                <li><strong>23H2 OS only</strong> — Also supported only until April 2026</li>
+                                <li><strong>Stretched clusters</strong> — Supported only until April 2026</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">So there are three overlapping issues:
+
+1. You're still on 22H2 (possibly with stretched clusters).
+2. You're on 23H2, but haven't moved to 24H2 and risk falling out of support in April 2026.
+3. You're using stretched clusters and need to understand what replaces them.
+
+This post covers all three — at the support and architecture boundary level.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Baseline Assumptions</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">To keep this grounded:</p>
+                    
+                    <ul class="article-list">
+                        <li>Production environments run on hardware validated and supported for Azure Local, deployed in supported configurations.</li>
+                        <li>There is an active Azure support plan that allows Azure Local technical cases. At minimum, this requires Azure Standard, Professional Direct, or Developer support. The Basic plan is not sufficient.</li>
+                        <li>The discussion focuses strictly on Azure Local OS and solution versions that Microsoft explicitly documents and supports — namely the transition from 22H2 → 23H2 → 24H2 (26100.xxxx) under the current monthly release model.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section-header">Scenario 1: Still on 22H2 — You're Already Out of Support</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">If you're still on Azure Local / Azure Stack HCI 22H2 (20349.xxxx) today:</p>
+                    
+                    <ul class="article-list">
+                        <li>22H2 reached end of support on May 31, 2025</li>
+                        <li>Monthly security and quality updates have stopped</li>
+                    </ul>
+
+                    <p class="article-text">Remaining on 22H2 means:</p>
+
+                    <ul class="article-list">
+                        <li>No new security fixes</li>
+                        <li>Increasing compatibility risk with drivers, agents, and integrations</li>
+                        <li>Any support case starts with: "upgrade first"</li>
+                    </ul>
+
+The good news: a direct path to 24H2
+
+Originally, the supported upgrade path was: 22H2 → 23H2 → 24H2
+
+That has changed.
+
+Starting with the 2505 release, Microsoft introduced a direct OS upgrade path from 22H2 (20349.xxxx) → 24H2 (26100.xxxx). This skips the 23H2 hop and reduces reboots and maintenance windows. Microsoft explicitly recommends taking this direct path where applicable.</p>
+
+                    <p class="article-text">If you're on 22H2:</p>
+
+                    <ul class="article-list">
+                        <li>Plan a direct OS upgrade to 24H2 (26100.xxxx)</li>
+                        <li>Complete the Azure Local solution upgrade so your solution version aligns with the 24H2 OS and places you on the monthly train</li>
+                    </ul>
+
+                    <p class="article-text">That restores:</p>
+
+                    <ul class="article-list">
+                        <li>A supported OS baseline</li>
+                        <li>Monthly security and quality updates</li>
+                        <li>A future‑proof lifecycle posture</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="quote-box">
+                        <p class="quote-text">"22H2 is already out of support. Don't wait for April 2026 — upgrade now."</p>
+                        <p class="quote-attribution">— Microsoft Support guidance</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">Scenario 2: On 23H2 — Don't Fall Off in April 2026</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">If you're running 23H2 OS (25398.xxxx), you're in better shape — but only temporarily.
+
+11.2510 (October 2025) was the final 23H2 solution release.
+
+All 23H2 configurations are supported only until April 2026
+
+After April 2026:
+
+                    <ul class="article-list">
+                        <li>23H2 receives no monthly updates</li>
+                        <li>Support cases will require upgrading before troubleshooting continues</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="columns">
+                <div>
+                    <h2 class="article-headline">Case A: 23H2 OS with the Azure Local solution installed</h2>
+                    <p class="article-text">If the solution is already installed:</p>
+
+                    <ul class="article-list">
+                        <li>Solution updates are mandatory, not optional</li>
+                        <li>They are the mechanism that moves you onto 24H2 (26100.xxxx)</li>
+                    </ul>
+
+                    <p class="article-text">Azure Local follows a Modern Lifecycle cadence: you must stay within six months of the most recent release to remain supported.</p>
+                </div>
+
+                <div>
+                    <h2 class="article-headline">Case B: 23H2 OS only (solution not completed)</h2>
+                    <p class="article-text">Some environments upgraded the OS but never finished the solution upgrade.</p>
+
+                    <p class="article-text">Microsoft explicitly treats this as a temporary state and expects you to:</p>
+
+                    <ul class="article-list">
+                        <li>Complete post‑OS upgrade tasks</li>
+                        <li>Validate solution readiness</li>
+                        <li>Apply the solution upgrade</li>
+                    </ul>
+
+                    <p class="article-text">Sitting in OS‑only 23H2 as April 2026 approaches is not a safe long‑term position.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Microsoft's Special Case: Stretched Clusters</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">Microsoft's generic OS‑upgrade guidance includes this statement:
+
+"There is an exception to the preceding recommendation if you are using stretch clusters. Stretch clusters should wait to directly move to version 26100.xxxx (24H2)."
+
+This sentence is easy to misread.
+
+Context for stretched clusters:
+
+You have effectively been on borrowed time. Microsoft accommodated stretched clusters on 23H2 for customers that already implemented them on 22H2, but that accommodation ends when 23H2 support ends in April 2026.
+
+In practical terms:
+
+                    <ul class="article-list">
+                        <li>There is no supported in‑place upgrade path for stretched clusters to 24H2</li>
+                        <li>After April 2026, stretched clusters are unsupported</li>
+                    </ul>
+
+                    <p class="article-text">Your next supported state must be a non‑stretched 24H2 design, delivered through deployment and migration, not in‑place conversion.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Rack‑Aware vs. Stretched: The 1 ms Line</div>
+
+            <div class="columns">
+                <div class="article">
+                    <p class="article-text">Rack‑aware clustering introduces a strict architectural constraint:</p>
+
+                    <p class="article-text"><strong>≤ 1 millisecond round‑trip latency between racks or zones</strong></p>
+
+                    <p class="article-text">Rack‑aware clustering is intended for:</p>
+
+                    <ul class="article-list">
+                        <li>A single site</li>
+                        <li>Fault domains within the same datacenter (racks or rooms), not distant locations</li>
+                    </ul>
+
+                    <p class="article-text"><strong>Rule of thumb:</strong></p>
+
+                    <ul class="article-list">
+                        <li>&lt; 1 ms latency → Rack‑aware clustering is supported</li>
+                        <li>&gt; 1 ms latency → Rack‑aware clustering is not supported</li>
+                    </ul>
+
+                    <h3 class="article-headline">New deployments only</h3>
+
+                    <p class="article-text">Rack‑aware clustering is supported only for new deployments.
+
+Converting an existing standard or stretched cluster in place to rack‑aware is not supported. Migration requires a side‑by‑side deployment and workload move.
+
+If your current "stretched" design is actually two racks or rooms in the same datacenter with sub‑millisecond latency, rack‑aware clustering is often the simpler and more future‑proof replacement.
+
+If your sites are truly separate, rack‑aware is not an option.</p>
+                </div>
+
+                <div>
+                    <div class="sidebar-box">
+                        <h3 class="sidebar-box-title">Migration Paths After April 2026</h3>
+                        <div class="sidebar-box-content">
+                            <ul>
+                                <li>If current "stretched" design has sub‑millisecond latency within one datacenter: use rack‑aware clustering</li>
+                                <li>If sites are truly separate: use independent clusters with replication</li>
+                                <li>No in‑place conversion supported</li>
+                                <li>Requires side‑by‑side deployment and workload move</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">Azure Local‑Managed VMs and the Arc Resource Bridge Boundary</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">When changing cluster topology, VM type matters.</p>
+
+                    <h3 class="article-headline">Plain Hyper‑V VMs</h3>
+
+                    <ul class="article-list">
+                        <li>Managed via Hyper‑V, Windows Admin Center, or SCVMM</li>
+                        <li>Can be replicated, migrated, backed up, and restored between clusters</li>
+                        <li>Remain plain Hyper‑V VMs on the destination</li>
+                    </ul>
+
+                    <h3 class="article-headline">Azure Local‑managed VMs</h3>
+
+                    <ul class="article-list">
+                        <li>Created and managed through Azure via the Azure Local solution</li>
+                        <li>Their Azure identity is tied to a specific Arc Resource Bridge and custom location</li>
+                    </ul>
+
+                    <p class="article-text">If you move or replicate the underlying VM to another cluster:</p>
+
+                    <ul class="article-list">
+                        <li>It appears there as a plain Hyper‑V VM</li>
+                        <li>There is currently no supported mechanism to preserve or transfer its Azure Local VM identity across clusters</li>
+                    </ul>
+
+                    <p class="article-text">You can still deploy the Azure Connected Machine (Arc) agent in the guest OS for OS‑level management, but that does not reconstitute it as an Azure Local‑managed VM.
+
+This is a design decision, not a migration footnote.</p>
+                </div>
+            </div>
+
+            <div class="section-header">Pulling It Together: A Practical Action Plan</div>
+
+            <div class="columns">
+                <div>
+                    <h2 class="article-headline">If you're on 22H2</h2>
+                    <p class="article-text">Accept that you're already out of support. Use the direct 22H2 → 24H2 OS upgrade. Complete the Azure Local solution upgrade.</p>
+                </div>
+
+                <div>
+                    <h2 class="article-headline">If you're on 23H2</h2>
+                    <p class="article-text">Treat April 2026 as a real deadline. Keep taking solution updates to land on 24H2 (26100.xxxx). If you're OS‑only, finish the solution upgrade now.</p>
+                </div>
+            </div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <h2 class="article-headline">If you're running a stretched cluster</h2>
+                    <p class="article-text">Recognize that stretched clusters are supported only through April 2026. Plan for a non‑stretched 24H2 architecture. Expect this to involve deployment and migration, not conversion.</p>
+                </div>
+            </div>
+
+            <div class="section-header">One‑Paragraph Summary for Stakeholders</div>
+
+            <div class="columns full-width">
+                <div class="article">
+                    <p class="article-text">Azure Local's 22H2 and 23H2 releases are on borrowed time. 22H2 is already out of support, and 23H2 — including stretched clusters — stops receiving security and quality updates after April 2026. Microsoft now operates Azure Local on a monthly release train based on the 24H2 OS (26100.x). To remain supported, environments must move to 24H2 and the current solution train. This transition is also the point at which stretched cluster designs must be replaced with supported non‑stretched architectures, such as rack‑aware clusters for low‑latency single‑site deployments or independent clusters with replication for multi‑site scenarios.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-disclaimer">
+            <h3>Disclaimer</h3>
+            <p>The views and opinions expressed on this website are solely my own and do not reflect the official positions of Dell Technologies, Microsoft, or any other affiliated organizations. All content is provided for informational purposes only.</p>
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard(url, button) {
+            navigator.clipboard.writeText(url).then(() => {
+                const originalContent = button.innerHTML;
+                button.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+    </script>
+</body>
+</html>

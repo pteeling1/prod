@@ -8,16 +8,16 @@ This document maps the local development environment, GitHub repositories, and A
 |---|---|---|---|---|---|
 | **Development** | `c:\Users\piete\OneDrive\Code\dev` | [pteeling1/dev](https://github.com/pteeling1/dev) | `green-moss-0c759f91e` | `main` | `azure-static-web-apps-green-moss-0c759f91e.yml` |
 | **Production** | `c:\Users\piete\OneDrive\Code\prod` | [pteeling1/prod](https://github.com/pteeling1/prod) | `thankful-coast-075a8e20f` | `main` | `azure-static-web-apps-thankful-coast-075a8e20f.yml` |
-| **Web (Preview)** | `c:\Users\piete\OneDrive\Code\web` | [pteeling1/web](https://github.com/pteeling1/web) | [TBD] | `main` | [TBD] |
+| **Web (Preview)** | `c:\Users\piete\OneDrive\Code\web` | [pteeling1/web](https://github.com/pteeling1/web) | `lively-water-06ffcb510` | `main` | `azure-static-web-apps-lively-water-06ffcb510.yml` |
 
 ### Public URLs
 - **Production**: https://thankyoutech.azurestaticapps.net/
 - **Development**: https://green-moss-0c759f91e.azurestaticapps.net/
-- **Web/Preview**: [To be configured]
+- **Web/Preview**: https://lively-water-06ffcb510.azurestaticapps.net/
 
 ## CI/CD Deployment
 
-Both dev and prod use **GitHub Actions** to automatically deploy to **Azure Static Web Apps** on push to `main`:
+All three environments (dev, prod, web) use **GitHub Actions** to automatically deploy to **Azure Static Web Apps** on push to `main`:
 
 ### Workflow Trigger
 ```yaml
@@ -42,6 +42,10 @@ on:
 
 **Prod:**
 - `AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_COAST_075A8E20F`
+- `GITHUB_TOKEN` (auto-provided by GitHub Actions)
+
+**Web:**
+- `AZURE_STATIC_WEB_APPS_API_TOKEN_LIVELY_WATER_06FFCB510`
 - `GITHUB_TOKEN` (auto-provided by GitHub Actions)
 
 ## Application Architecture

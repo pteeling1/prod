@@ -54,8 +54,7 @@ on:
 The AX Calculator is a **static, client-side web app** for:
 - **Manual sizing**: Sliders and dropdowns for machine config
 - **Automated sizing**: Modal-based requirements gathering
-- **RVTools import**: CSV parsing for workload analysis
-- **FREB analysis**: Log parsing for advanced diagnostics
+- **Batch sizing**: RVTools CSV import for workload analysis and cluster recommendations
 - **Export**: PowerPoint and PDF generation
 
 ### Core Technologies
@@ -149,10 +148,10 @@ The AX Calculator is a **static, client-side web app** for:
   - `updateResiliencyOptions()`
   - `updateStorage()`
 
-### Import & Analysis
+### Batch Sizing & Import
 - **`js/rvtools-import.js`** / **`js/fileprocessor.js`**
   - CSV parsing for RVTools data
-  - FREB log analysis
+  - Batch sizing based on workload analysis
   - Creates workload rows dynamically
 
 ### Export
@@ -193,10 +192,10 @@ Open `http://localhost:8000/` (or configured port)
 1. Edit files in `dev/` folder
 2. Refresh browser — changes are immediate (no build step)
 3. Test all flows: manual config, automated sizing, imports, exports
-4. Commit and push to `dev` branch
+4. Commit locally (push to GitHub only when explicitly instructed)
 
-### Pushing to Production
-Same process as dev, but changes go to `prod/` folder and `prod` GitHub branch.
+### Syncing to Production
+When ready to deploy changes to prod, explicitly request the sync. Changes will be copied from dev to prod and pushed to the prod GitHub branch.
 
 ## Important Conventions
 

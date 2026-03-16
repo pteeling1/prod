@@ -11,7 +11,7 @@ import { getMaxMemoryPerNode, getValidDiskSizes } from './hardwareConfig.js';
 import { drawStorageChart } from './charts.js';
 import { drawConnections, initializeVisuals, updateLegend, updateNodeStack } from './visuals-debug.js';
 import { setupPDFExport } from './pdfexporter.js';
-import { getSizingPayloadFromHTML, sizeCluster } from './sizingEngine.js';
+import { getSizingPayloadFromHTML, sizeCluster, getManagementClusterPayload } from './sizingEngine.js';
 import { renderRelativeFillBarChart } from "./barchart.js";
 import {exportToPowerPoint} from './exportToPowerPoint.js';
 import { setupPPTXExport } from "./pptxExporter.js";
@@ -452,13 +452,18 @@ const totalUsableMemory = Math.round(totalMemoryGB * 0.96);
 
   // ✅ Only overwrite output in manual mode
   outputContainer.innerHTML = `
-    <strong>Total Machines:</strong> ${nodes}<br>
-    <strong>Total Cores:</strong> ${totalCores}<br>
-    <strong>Total GHz:</strong> ${totalGHz} GHz<br>
-    <strong>Total Memory:</strong> ${memorySize * nodes} GB<br>
-    <strong>Raw Storage:</strong> ${results.rawTB} TB<br>
-    <strong>Usable Storage:</strong> ${results.usableTB} TB <strong>(${results.usableTiB} TiB)</strong><br>
-    <strong>Resiliency Overhead:</strong> ${results.resiliencyTB} TB
+    <h6 class="text-primary"><i class="bi bi-calculator"></i> ${nodes} machines recommendation</h6>
+    <div class="small text-muted">
+    <ul class="list-unstyled mb-0">
+    <li><strong>Total Machines:</strong> ${nodes}</li>
+    <li><strong>Total Cores:</strong> ${totalCores}</li>
+    <li><strong>Total GHz:</strong> ${totalGHz} GHz</li>
+    <li><strong>Total Memory:</strong> ${memorySize * nodes} GB</li>
+    <li><strong>Raw Storage:</strong> ${results.rawTB} TB</li>
+    <li><strong>Usable Storage:</strong> ${results.usableTB} TB (${results.usableTiB} TiB)</li>
+    <li><strong>Resiliency Overhead:</strong> ${results.resiliencyTB} TB</li>
+    </ul>
+    </div>
   `;
 
   drawStorageChart(
@@ -481,14 +486,16 @@ reqBox.classList.add("alert-info");
   const cpuText = isGHzMode ? `${totalGHz} GHz` : `${totalCPU} cores`;
 
   reqBox.innerHTML = `
-    <h5> Requirements provided</h5> 
-    <ul class="list-unstyled mb-0"><br>
+    <h6 class="text-primary"><i class="bi bi-sliders"></i> Requirements provided</h6> 
+    <div class="small text-muted">
+    <ul class="list-unstyled mb-0">
     <li><strong>CPU:</strong> ${cpuText.toLocaleString()}</li>
     <li><strong>RAM:</strong> ${totalRAM.toLocaleString()} GB</li>
     <li><strong>Storage:</strong> ${parseFloat(totalStorage).toFixed(2).toLocaleString()} TiB</li>
     <li><strong>Growth:</strong> ${(growthPct * 100).toFixed(1)}%</li>
     <li><strong>Resiliency:</strong> ${haLevel.toUpperCase()}</li>
     </ul>
+    </div>
   `;
 }
 const sizingDetails = document.getElementById("sizingDetails");
@@ -581,7 +588,8 @@ function renderInstanceSummaryBlock({
   const block = document.createElement("div");
   block.className = "cluster-summary-block alert alert-info";
   block.innerHTML = `
-  <h5>${name} (${nodeCount} machines)</h5>
+  <h6 class="text-primary"><i class="bi bi-boxes"></i> ${name} (${nodeCount} machines)</h6>
+  <div class="small text-muted">
   <ul class="list-unstyled mb-0">
     <li><strong>CPU:</strong> ${usableCores} cores / ${usableGHz.toFixed(1)} GHz</li>
     <li><strong>RAM:</strong> ${usableMemoryGB.toLocaleString()} GB</li>
@@ -591,13 +599,14 @@ function renderInstanceSummaryBlock({
     <li><strong>Switchports Required:</strong> ${nodeCount * (clusterType?.toLowerCase() === "converged" ? 2 : 4)}</li>
   </ul>
   <hr>
-    <h6>Post-Failure Capacity</h6>
+    <h6 class="text-primary"><i class="bi bi-shield-check"></i> Post-Failure Capacity</h6>
     <ul class="list-unstyled mb-0">
       <li><strong>Active Machines:</strong> ${postFailureCapabilities.activeNodes}</li>
       <li><strong>CPU:</strong> ${postFailureCapabilities.usableCores.toLocaleString()} cores / ${postFailureCapabilities.usableGHz.toFixed(1)} GHz</li>
       <li><strong>RAM:</strong> ${postFailureCapabilities.usableMemoryGB.toLocaleString()} GB</li>
       <li><strong>Storage:</strong> ${usableTiB.toFixed(2)} TiB usable</li>
     </ul>
+  </div>
 `;
   container.appendChild(block);
 }
@@ -621,7 +630,23 @@ if (!sizingPayload) {
     return;
   }
 
-    const result = sizeCluster(sizingPayload);
+    // Check if disconnected ops is enabled
+    const disconnectedOpsEnabled = document.getElementById("disconnectedOpsCheckbox")?.checked || false;
+    
+    // Size the workload cluster with user requirements
+    const workloadResult = sizeCluster(sizingPayload);
+    
+    // If disconnected ops enabled, also size the management cluster
+    let managementResult = null;
+    if (disconnectedOpsEnabled) {
+      const mgmtPayload = getManagementClusterPayload();
+      managementResult = sizeCluster(mgmtPayload);
+      logger.info("🏗️ Disconnected ops: Management cluster sized separately", managementResult);
+    }
+    
+    // Combine results for display (workload is primary, management is secondary)
+    const result = workloadResult;
+    
     const switchlessRadio = document.getElementById("switchless");
 const switchlessWrapper = switchlessRadio?.closest(".form-check");
 
@@ -640,7 +665,15 @@ if (switchlessWrapper) {
 }
     const cleanResult = {
       ...result,
-      isManualMode: false
+      isManualMode: false,
+      // Store both workload and management results for disconnected ops
+      ...(disconnectedOpsEnabled && managementResult && {
+        disconnectedOps: {
+          enabled: true,
+          workloadResult: workloadResult,
+          managementResult: managementResult
+        }
+      })
     };
 
     window.lastSizingResult = cleanResult;
@@ -698,8 +731,25 @@ renderInstanceSummaryBlock({
   postFailureCapabilities: result.totalClusterResources.postFailure
 });
 
+// If disconnected ops enabled, add management cluster summary block
+if (disconnectedOpsEnabled && managementResult) {
+  renderInstanceSummaryBlock({
+    name: "Management Cluster (Fixed)",
+    nodeCount: managementResult.nodeCount,
+    usableCores: managementResult.totalCores,
+    usableGHz: managementResult.totalUsableGHz || 0,
+    usableMemoryGB: managementResult.totalMemoryGB,
+    usableTiB: managementResult.usableTiB,
+    resiliency: managementResult.storageResiliency,
+    switchMode: "Converged",
+    clusterType: "Management",
+    postFailureCapabilities: managementResult.totalClusterResources?.postFailure
+  });
+}
+
     outputContainer.innerHTML = `
-      <h5>${result.nodeCount} machines recommendation calculated</h5><br>
+      <h6 class="text-primary"><i class="bi bi-calculator"></i> ${result.nodeCount} machines recommendation calculated</h6>
+      <div class="small text-muted">
       <ul class="list-unstyled mb-0">
       <li><strong>Instances:</strong> ${result.clusterCount} total • ${clusterSummary}</li> 
       <li><strong>Chassis:</strong> ${result.chassisModel} </li>
@@ -710,13 +760,16 @@ renderInstanceSummaryBlock({
       <li><strong> Storage Resiliency:</strong> ${result.storageResiliency}</li>
       <li><strong>Usable Storage:</strong> ${parseFloat(result.usableTiB).toFixed(2).toLocaleString()} TiB</li>
       </ul>
-      ${result.disconnectedOps && result.disconnectedOps.enabled ? `
+      </div>
+      ${disconnectedOpsEnabled && managementResult ? `
       <div class="mt-3 pt-3 border-top">
-        <h6 class="text-primary"><i class="bi bi-cloud-check"></i> Disconnected Operations Overhead</h6>
-        <ul class="list-unstyled small text-muted mb-0">
-          <li><strong>Workload Cluster:</strong> ${result.disconnectedOps.workloadCluster.cores} cores, ${result.disconnectedOps.workloadCluster.ram} GB RAM, ${result.disconnectedOps.workloadCluster.storage.toFixed(2)} TB storage</li>
-          <li><strong>Management Cluster:</strong> ${result.disconnectedOps.managementCluster.cores} cores, ${result.disconnectedOps.managementCluster.ram} GB RAM, ${result.disconnectedOps.managementCluster.storage} TB storage (${result.disconnectedOps.managementCluster.nodes} nodes)</li>
-        </ul>
+        <h6 class="text-primary"><i class="bi bi-cloud-check"></i> Disconnected Operations - Separate Clusters</h6>
+        <div class="small text-muted">
+          <p><strong>Workload Cluster:</strong><br>
+            ${result.nodeCount} nodes × ${result.memorySizeGB} GB RAM × ${result.cpuCoresPerSocket * 2} cores/node = ${result.totalCores} total cores, ${result.usableTiB.toFixed(2)} TiB usable storage</p>
+          <p style="margin-bottom: 0;"><strong>Management Cluster (Fixed):</strong><br>
+            3 nodes × 96 GB RAM × 24 cores/node, 3 × 1.92 TB disks/node = 72 total cores, 3.48 TiB usable storage</p>
+        </div>
       </div>
       ` : ''}
     `;

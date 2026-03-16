@@ -17,17 +17,18 @@ const cpuScoreLog = []
 
 // Get the correct CPU list based on chassis model
 function getCpuListForChassis(chassisModel) {
-  // Merge both CPU lists for full availability
-  const allCpus = [...cpuDataOld, ...cpuDataNew];
-  
-  // Filter CPUs based on chassis compatibility
-  if (chassisModel === "AX-4510c" || chassisModel === "AX-4520c") {
-    // Ice Lake D models support only Xeon D processors
-    return allCpus.filter(cpu => cpu.model.includes("Xeon D"));
+  // AX 670 and AX 770 use ONLY the new 17GcpuData.js CPUs
+  if (chassisModel === "AX 670" || chassisModel === "AX 770") {
+    return cpuDataNew;
   }
   
-  // Traditional models (AX 660/670/760/770) use Gold/Platinum only
-  return allCpus.filter(cpu => !cpu.model.includes("Xeon D"));
+  // AX-4510c and AX-4520c use only Xeon D processors
+  if (chassisModel === "AX-4510c" || chassisModel === "AX-4520c") {
+    return cpuDataOld.filter(cpu => cpu.model.includes("Xeon D"));
+  }
+  
+  // Traditional models (AX 660, AX 760) use non-Xeon D from old data
+  return cpuDataOld.filter(cpu => !cpu.model.includes("Xeon D"));
 }
 
 // � Get socket count based on chassis model
@@ -613,46 +614,32 @@ function applyGrowthFactor(value, growthPercent) {
   return value * (1 + growthPercent / 100);
 }
 
-// 🔌 Disconnected Operations Overhead
+// 🔌 Disconnected Operations Constants
 // Management cluster: 3 nodes × 96GB RAM, 24 cores per node
-function applyDisconnectedOpsOverhead(payload, disconnectedOpsEnabled) {
-  if (!disconnectedOpsEnabled) {
-    return payload;
+const DISCONNECTED_OPS_CONFIG = {
+  managementCluster: {
+    nodes: 3,
+    ramPerNode: 96, // GB
+    coresPerNode: 24,
+    disksPerNode: 3,
+    diskSize: 1.92, // TB per disk
+    totalstorageTB: 5.76 // TB raw (3 × 1.92 TB disks per node)
   }
+};
 
-  const MGMT_NODES = 3;
-  const MGMT_RAM_PER_NODE = 96; // GB
-  const MGMT_CORES_PER_NODE = 24;
-  const MGMT_STORAGE_PER_NODE = 2; // TB (2TB SSD/NVME per node)
-
-  const mgmtCores = MGMT_NODES * MGMT_CORES_PER_NODE; // 72 cores
-  const mgmtRAM = MGMT_NODES * MGMT_RAM_PER_NODE; // 288 GB
-  const mgmtStorage = MGMT_NODES * MGMT_STORAGE_PER_NODE; // 6 TB
-
-  console.log(`🔌 Disconnected Operations: Adding management cluster overhead`);
-  console.log(`   Workload cluster: ${payload.totalCPU} cores, ${payload.totalRAM} GB RAM`);
-  console.log(`   Management cluster: ${mgmtCores} cores, ${mgmtRAM} GB RAM, ${mgmtStorage} TB storage`);
-
+// Get management cluster payload for separate sizing
+function getManagementClusterPayload() {
+  const config = DISCONNECTED_OPS_CONFIG.managementCluster;
   return {
-    ...payload,
-    totalCPU: payload.totalCPU + mgmtCores,
-    totalRAM: payload.totalRAM + mgmtRAM,
-    totalStorage: payload.totalStorage + mgmtStorage,
-    totalGHz: payload.totalGHz || 0, // Explicitly preserve GHz requirement
-    disconnectedOps: {
-      enabled: true,
-      workloadCluster: {
-        cores: payload.totalCPU,
-        ram: payload.totalRAM,
-        storage: payload.totalStorage
-      },
-      managementCluster: {
-        cores: mgmtCores,
-        ram: mgmtRAM,
-        storage: mgmtStorage,
-        nodes: MGMT_NODES
-      }
-    }
+    mode: 'vm',
+    totalCPU: config.nodes * config.coresPerNode,
+    totalRAM: config.nodes * config.ramPerNode,
+    totalStorage: config.totalstorageTB,
+    totalGHz: 0,
+    haLevel: 'n+1',
+    growthPct: 0,
+    isManagementCluster: true,
+    _spec: `${config.nodes} nodes × ${config.ramPerNode}GB × ${config.coresPerNode} cores, ${config.disksPerNode} × ${config.diskSize} TB disks`
   };
 }
 
@@ -688,7 +675,7 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
       chassisModel
     };
 
-    return applyDisconnectedOpsOverhead(payload, disconnectedOpsEnabled);
+    return payload;
 
   } else if (mode === "workload") {
   // === New Workload mode ===
@@ -770,7 +757,7 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
     workloads: workloadSummaries
   };
 
-  return applyDisconnectedOpsOverhead(payload, disconnectedOpsEnabled);
+  return payload;
 } else {
   // === Existing "other" mode ===
   const cpuUnit = document.getElementById("cpuUnit")?.value || "cores";
@@ -799,7 +786,7 @@ const mode = activePill?.getAttribute("data-mode") || "vm";
     workloads: [] // empty array for consistency
   };
 
-  return applyDisconnectedOpsOverhead(payload, disconnectedOpsEnabled);
+  return payload;
 }
 }
 
@@ -1228,7 +1215,8 @@ export {
   selectOptimalCpuForCores,
   selectOptimalCpuForGHz,
   selectOptimalMemoryConfig,
-  selectDiskConfig
+  selectDiskConfig,
+  getManagementClusterPayload
 };
 
 

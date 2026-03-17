@@ -65,14 +65,23 @@ function populateCpuOverrideDropdown() {
     select.appendChild(option);
   });
   
+  // Create a map of model -> specs (cores, GHz) from the first occurrence of each model
+  const modelSpecs = {};
+  cpuList.forEach(cpu => {
+    if (!modelSpecs[cpu.model]) {
+      modelSpecs[cpu.model] = { cores: cpu.cores, ghz: cpu.base_clock_GHz };
+    }
+  });
+  
   // Populate CPU exclusion checkboxes
   models.forEach(model => {
+    const specs = modelSpecs[model];
     const id = `cpu-exclude-${model.replace(/[^a-z0-9]/gi, '_')}`;
     const wrapper = document.createElement('div');
     wrapper.className = 'form-check';
     wrapper.innerHTML = `
       <input class="form-check-input cpu-exclude" type="checkbox" value="${model}" id="${id}" data-cpu-model="${model}">
-      <label class="form-check-label" for="${id}">${model}</label>
+      <label class="form-check-label" for="${id}">${model} (${specs.cores} cores, ${specs.ghz} GHz)</label>
     `;
     exclusionContainer.appendChild(wrapper);
   });

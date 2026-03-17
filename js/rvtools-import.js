@@ -177,6 +177,9 @@ function normalizeVMRow(vm, memoryMap = {}, consumedStorageMap = {}) {
     // 👇 Map the verbose RVTools column to a clean property
     GuestOS: vm["OS according to the configuration file"]?.trim() || 'Unknown',
 
+    // 👇 Capture the "Include" column value (yes/no). Default to true if column missing.
+    Include: vm["Include"] ? vm["Include"].trim().toLowerCase() === 'yes' : true,
+
     SourceFile: vm.SourceFile || 'Unknown File'
   };
 }
@@ -273,6 +276,14 @@ function handleFileUpload(event) {
 
       // vInfo normalization
       const rawVMData = XLSX.utils.sheet_to_json(vInfoSheet);
+      
+      // 🔍 Debug: Show all column names in the Excel file
+      if (rawVMData.length > 0) {
+        const columnNames = Object.keys(rawVMData[0]);
+        console.log("📋 Column names in vInfo sheet:", columnNames);
+        console.log("🔍 First row raw data:", rawVMData[0]);
+      }
+      
       const normalizedVMs = rawVMData.map(vm => {
         const normalized = normalizeVMRow(vm, vmActiveMemoryMap, vmConsumedStorageMap);
         normalized.SourceFile = file.name;
@@ -280,6 +291,16 @@ function handleFileUpload(event) {
       });
       console.group(`📥 File Loaded: ${file.name}`);
 console.log(`🔍 VM Count: ${normalizedVMs.length}`);
+
+// Show VMs excluded due to "include" column
+const excludedByInclude = normalizedVMs.filter(vm => vm.Include === false);
+if (excludedByInclude.length > 0) {
+  console.warn(`⚠️ VMs excluded by 'include' column: ${excludedByInclude.length}`);
+  console.table(excludedByInclude.map(vm => ({ VMName: vm.VMName, Include: vm.Include })));
+} else {
+  console.log("✅ No VMs excluded by 'include' column (or column not found)");
+}
+
 console.log("🧠 Sample VM:", normalizedVMs[0]);
 console.log("📊 Total vCPU:", normalizedVMs.reduce((sum, vm) => sum + vm.NumCpu, 0));
 console.log("📊 Total Memory (GB):", normalizedVMs.reduce((sum, vm) => sum + vm.MemoryGB, 0).toFixed(1));
@@ -432,8 +453,16 @@ function updatePreview() {
 
   const excludePoweredOff = document.getElementById("excludePoweredOff")?.checked;
 
-  // Start with all powered-on VMs
-  let filteredVMs = currentVMData.filter(vm => excludePoweredOff ? isPoweredOn(vm) : true);
+  // Start with all VMs, applying filters in sequence
+  let filteredVMs = currentVMData.filter(vm => {
+    // Exclude VMs that have Include = false
+    if (vm.Include === false) return false;
+    
+    // Exclude powered-off VMs if checkbox is enabled
+    if (excludePoweredOff && !isPoweredOn(vm)) return false;
+    
+    return true;
+  });
 
   // 🔎 Apply OS filter if checkboxes exist
   const osCheckboxes = document.querySelectorAll('.os-filter:checked');

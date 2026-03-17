@@ -28,7 +28,7 @@ All three environments use **GitHub Actions** → **Azure Static Web Apps** on p
 - **Prod Secret**: `AZURE_STATIC_WEB_APPS_API_TOKEN_THANKFUL_COAST_075A8E20F`
 - **Web Secret**: `AZURE_STATIC_WEB_APPS_API_TOKEN_LIVELY_WATER_06FFCB510`
 
-For complete deployment details, see [ENVIRONMENT.md](ENVIRONMENT.md).
+For complete deployment details, see [ENVIRONMENT.md](../ENVIRONMENT.md).
 
 ---
 
@@ -44,13 +44,13 @@ This repository is a **static, client-side web app** (no bundler). Key folders: 
 - Many files assume DOM elements exist and run on `DOMContentLoaded`.
 
 ### Important files to inspect first
-- [js/main.js](js/main.js#L1) — app entry, event bindings, UI sync, developer-visible globals
-- [js/sizingEngine.js](js/sizingEngine.js#L1) — pure logic: CPU, memory, disk selection, `sizeCluster()` export
-- [js/hardwareConfig.js](js/hardwareConfig.js#L1) — hardware constraints: chassis models, memory limits, CPU compatibility
-- [js/uihandlers.js](js/uihandlers.js#L1) — DOM update helpers referenced by `main.js`
-- [js/visuals-debug.js](js/visuals-debug.js#L1) — topology drawing used by exporter/visual toggles
-- [js/exportToPowerPoint.js](js/exportToPowerPoint.js#L1) and [js/pptxExporter.js](js/pptxExporter.js#L1) — PPTX export orchestration
-- [js/rvtools-import.js](js/rvtools-import.js#L1) / [js/fileprocessor.js](js/fileprocessor.js#L1) — CSV import & parsing logic
+- [js/main.js](../js/main.js) — app entry, event bindings, UI sync, developer-visible globals
+- [js/sizingEngine.js](../js/sizingEngine.js) — pure logic: CPU, memory, disk selection, `sizeCluster()` export
+- [js/hardwareConfig.js](../js/hardwareConfig.js) — hardware constraints: chassis models, memory limits, CPU compatibility
+- [js/uihandlers.js](../js/uihandlers.js) — DOM update helpers referenced by `main.js`
+- [js/visuals-debug.js](../js/visuals-debug.js) — topology drawing used by exporter/visual toggles
+- [js/exportToPowerPoint.js](../js/exportToPowerPoint.js) and [js/pptxExporter.js](../js/pptxExporter.js) — PPTX export orchestration
+- [js/rvtools-import.js](../js/rvtools-import.js) / [js/fileprocessor.js](../js/fileprocessor.js) — CSV import & parsing logic
 
 ---
 
@@ -122,9 +122,9 @@ Open `http://localhost:8000/index.html` (or configured port). Do not rely on `fi
 ## Debug Tips / Quick Searches
 
 - Search for `window.lastSizingResult` to find stateful usage
-- Inspect CPU/memory lists in [js/cpuData.js](js/cpuData.js#L1) and hardware constraints in [js/hardwareConfig.js](js/hardwareConfig.js#L1)
+- Inspect CPU/memory lists in [js/cpuData.js](../js/cpuData.js) and hardware constraints in [js/hardwareConfig.js](../js/hardwareConfig.js)
 - Use browser console to view the sizing logs (sizing engine prints tables/groups)
 
 ---
 
-**Full context available in**: [ENVIRONMENT.md](ENVIRONMENT.md) — contains complete architecture, folder structure, troubleshooting guide, and references.
+**Full context available in**: [ENVIRONMENT.md](../ENVIRONMENT.md) — contains complete architecture, folder structure, troubleshooting guide, and references.

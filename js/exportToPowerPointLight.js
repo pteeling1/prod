@@ -157,6 +157,7 @@ export function exportToPowerPointLight(result, requirements, diagramImage) {
       [{ text: "Requirement" }, { text: "Value" }],
       ["Resiliency", req.haLevel || "—"],
       ["Required Cores", `${(req.totalCPU || req.totalCores || 0).toLocaleString()}`],
+      ["Required GHz", req.totalGHz ? `${parseFloat(req.totalGHz).toFixed(0)} GHz` : "—"],
       ["Required RAM", `${(req.totalRAM || req.totalMemoryGB || 0).toLocaleString()} GB`],
       ["Required Storage", `${parseFloat(req.totalStorage || req.usableTiB || 0).toFixed(2)} TiB`],
       ["Growth", `${((req.growthPct || 0) * 100).toFixed(1)}%`]
@@ -164,6 +165,7 @@ export function exportToPowerPointLight(result, requirements, diagramImage) {
   }
 
   function buildRecommendationsTable(res) {
+    const usableGHz = res.totalClusterResources?.normal?.usableGHz || res.totalGHz || 0;
     return [
       [{ text: "Metric" }, { text: "Value" }],
       ["Clusters / Instances", `${res.clusterCount || 1}`],
@@ -173,11 +175,27 @@ export function exportToPowerPointLight(result, requirements, diagramImage) {
         `${(res.totalCores || 0).toLocaleString()} (${(res.totalUsableCores || res.totalCores || 0).toLocaleString()} usable)`
       ],
       [
+        "Total GHz",
+        usableGHz ? `${parseFloat(usableGHz).toFixed(0)} GHz` : "—"
+      ],
+      [
         "Total Memory",
         `${(res.totalMemoryGB || 0).toLocaleString()} GB (${(res.totalUsableMemory || res.totalMemoryGB || 0).toLocaleString()} GB usable)`
       ],
       ["Disks", `${res.disksPerNode || 0} × ${res.diskSizeTB || 0} TB`],
       ["Usable Storage", `${res.usableTiB || 0} TiB`]
+    ];
+  }
+
+  function buildPostFailureTable(res) {
+    const pf = res.totalClusterResources?.postFailure;
+    const usableGHz = pf?.usableGHz || 0;
+    return [
+      [{ text: "Post-Failure Capacity (N-1 Resiliency)" }, { text: "Value" }],
+      ["Active Nodes", pf?.activeNodes || 0],
+      ["Cores (usable)", `${(pf?.usableCores || 0).toLocaleString()}`],
+      ["GHz (usable)", usableGHz ? `${parseFloat(usableGHz).toFixed(0)} GHz` : "—"],
+      ["RAM (usable)", `${(pf?.usableMemoryGB || 0).toLocaleString()} GB`]
     ];
   }
 
@@ -340,6 +358,29 @@ export function exportToPowerPointLight(result, requirements, diagramImage) {
       w: colWidth,
       headerColor: LIGHT_THEME.accentSoft,
       colW: [colWidth * 0.5 - 0.05, colWidth * 0.5 - 0.05],
+      fontSize: 6.5,
+      headerFontSize: 7
+    });
+
+    // Post-failure section
+    const postFailureY = contentY + 2.8;
+    slide.addText("Post-Failure Capacity (N-1 Resiliency)", {
+      x: 0.5,
+      y: postFailureY,
+      w: 9.0,
+      h: 0.15,
+      fontSize: 8,
+      bold: true,
+      fontFace: LIGHT_THEME.fontFace,
+      color: LIGHT_THEME.accent1
+    });
+
+    addLightTable(slide, buildPostFailureTable(result), {
+      x: 0.5,
+      y: postFailureY + 0.15,
+      w: 9.0,
+      headerColor: LIGHT_THEME.accent1,
+      colW: [4.0, 5.0],
       fontSize: 6.5,
       headerFontSize: 7
     });

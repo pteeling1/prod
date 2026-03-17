@@ -723,20 +723,36 @@ function runSizing() {
 
   groupsToSize.forEach(group => {
     const normalizedClusters = group.clusters.map(c => c.trim().toLowerCase());
+    const combineSourceFiles = document.getElementById('combineSourceFiles')?.checked ?? true;
 
-    // Partition VMs by site (file/source)
-    const vmsBySite = {};
-    currentFilteredVMs.forEach(vm => {
-      const site = vm.SourceFile || 'Unknown File';
-      const vmCluster = vm.Cluster?.trim().toLowerCase();
-      if (normalizedClusters.includes(vmCluster)) {
-        if (!vmsBySite[site]) vmsBySite[site] = [];
-        vmsBySite[site].push(vm);
-      }
-    });
+    // Get VMs for this group
+    const groupVMs = currentFilteredVMs.filter(vm =>
+      normalizedClusters.includes(vm.Cluster?.trim().toLowerCase())
+    );
 
-    Object.entries(vmsBySite).forEach(([site, vms]) => {
+    // Partition by source file OR treat as single workload
+    let vmsByPartition;
+    if (combineSourceFiles) {
+      // Combine all VMs from different files into one sizing
+      vmsByPartition = { [group.name]: groupVMs };
+    } else {
+      // Partition VMs by site (file/source) - original behavior
+      vmsByPartition = {};
+      groupVMs.forEach(vm => {
+        const site = vm.SourceFile || 'Unknown File';
+        const resultKey = `${group.name} – ${site}`;
+        if (!vmsByPartition[resultKey]) vmsByPartition[resultKey] = [];
+        vmsByPartition[resultKey].push(vm);
+      });
+    }
+
+    Object.entries(vmsByPartition).forEach(([resultName, vms]) => {
       if (vms.length === 0) return;
+
+      const vmSources = [...new Set(vms.map(vm => vm.SourceFile || 'Unknown File'))];
+      if (combineSourceFiles && vmSources.length > 1) {
+        console.log(`🔗 COMBINING from multiple sources: ${vmSources.join(', ')}`);
+      }
 
       // Aggregate VM totals
       const totalVcpu = vms.reduce((sum, vm) => sum + vm.NumCpu, 0);
@@ -772,11 +788,24 @@ function runSizing() {
         console.log(`📊 Storage - Provisioned: ${provisionedDiskGB.toFixed(1)} GB, Consumed: ${consumedDiskGB.toFixed(1)} GB, Using: ${storageMethod} (${selectedDiskGB.toFixed(1)} GB)`);
       }
 
-      // Match hosts for this site + cluster(s)
-      const matchingHosts = currentHostData.filter(host =>
-        normalizedClusters.includes(host.Cluster?.trim().toLowerCase()) &&
-        host.SourceFile === site
-      );
+      // Match hosts for this group
+      let matchingHosts;
+      if (combineSourceFiles) {
+        // Combine hosts from all source files for clusters in this group
+        const vmSourceFiles = [...new Set(vms.map(vm => vm.SourceFile || 'Unknown File'))];
+        matchingHosts = currentHostData.filter(host =>
+          normalizedClusters.includes(host.Cluster?.trim().toLowerCase()) &&
+          vmSourceFiles.includes(host.SourceFile)
+        );
+      } else {
+        // Match hosts for single source file
+        const vmSourceFiles = [...new Set(vms.map(vm => vm.SourceFile || 'Unknown File'))];
+        const primarySource = vmSourceFiles[0]; // Should be single file in this case
+        matchingHosts = currentHostData.filter(host =>
+          normalizedClusters.includes(host.Cluster?.trim().toLowerCase()) &&
+          host.SourceFile === primarySource
+        );
+      }
 
       const hostCount = matchingHosts.length;
       const totalPhysicalCores = matchingHosts.reduce((sum, host) => sum + host.totalCores, 0);
@@ -902,7 +931,7 @@ console.groupEnd();
 
 
       sizingResults.push({
-        clusterName: `${site} / ${group.name}`,
+        clusterName: resultName,
         vmCount: vms.length,
         totalVcpu,
         totalRamGB: adjustedTotalRAM,
@@ -917,7 +946,7 @@ console.groupEnd();
 
       const resultHTML = `
         <div class="cluster-result">
-          <h5>${site} / ${group.name}</h5>
+          <h5>${resultName}</h5>
 
           <h5>📋 Requirements</h5>
           <ul>

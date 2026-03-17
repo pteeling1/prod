@@ -1,0 +1,185 @@
+Azure Local Support Deadlines, Stretched Clusters, and Rack‑Aware
+What You Need to Do Before April 2026
+Still on 22H2? Running a stretched cluster? Or sitting on 23H2 hoping it buys you time?
+This is your wake‑up call — with clear facts and supported directions, not “just wait.”
+
+Why April 2026 Matters
+Azure Local (formerly Azure Stack HCI) has moved away from the old annual 22H2 / 23H2 cadence to a monthly release train with versions like 2507, 2508, 2509, and so on. These monthly releases align to a specific OS build (for example, 24H2 = 26100.xxxx) and follow Microsoft’s Modern Lifecycle model, which requires customers to stay within six months of the latest release to remain supported.
+That change is good for features and fixes — but it also means older H2 releases have a hard runway.
+Key support dates
+22H2 OS (20349.xxxx)
+
+Reached end of support on May 31, 2025
+No monthly security or quality updates after that date
+
+23H2 OS (25398.xxxx) with the Azure Local solution
+
+Final 23H2 solution release was 11.2510 (October 2025)
+That release is supported until April 2026
+
+23H2 OS (25398.xxxx) without the Azure Local solution
+
+Also supported only until April 2026
+After that, no monthly security or quality updates
+
+Stretched clusters running 23H2 OS
+
+Supported only until April 2026
+No supported path beyond that date
+
+So there are three overlapping issues:
+
+You’re still on 22H2 (possibly with stretched clusters).
+You’re on 23H2, but haven’t moved to 24H2 and risk falling out of support in April 2026.
+You’re using stretched clusters and need to understand what replaces them.
+
+This post covers all three — at the support and architecture boundary level.
+
+Baseline Assumptions
+To keep this grounded:
+
+Production environments run on hardware validated and supported for Azure Local, deployed in supported configurations.
+There is an active Azure support plan that allows Azure Local technical cases. At minimum, this requires Azure Standard, Professional Direct, or Developer support. The Basic plan is not sufficient.
+The discussion focuses strictly on Azure Local OS and solution versions that Microsoft explicitly documents and supports — namely the transition from 22H2 → 23H2 → 24H2 (26100.xxxx) under the current monthly release model.
+
+
+Scenario 1: Still on 22H2 — You’re Already Out of Support
+If you’re still on Azure Local / Azure Stack HCI 22H2 (20349.xxxx) today:
+
+22H2 reached end of support on May 31, 2025
+Monthly security and quality updates have stopped
+
+Remaining on 22H2 means:
+
+No new security fixes
+Increasing compatibility risk with drivers, agents, and integrations
+Any support case starts with: “upgrade first”
+
+The good news: a direct path to 24H2
+Originally, the supported upgrade path was:
+22H2 → 23H2 → 24H2
+That has changed.
+Starting with the 2505 release, Microsoft introduced a direct OS upgrade path from:
+22H2 (20349.xxxx) → 24H2 (26100.xxxx)
+This skips the 23H2 hop and reduces reboots and maintenance windows. Microsoft explicitly recommends taking this direct path where applicable.
+If you’re on 22H2:
+
+Plan a direct OS upgrade to 24H2 (26100.xxxx)
+Complete the Azure Local solution upgrade so your solution version aligns with the 24H2 OS and places you on the monthly train
+
+That restores:
+
+A supported OS baseline
+Monthly security and quality updates
+A future‑proof lifecycle posture
+
+
+Scenario 2: On 23H2 — Don’t Fall Off in April 2026
+If you’re running 23H2 OS (25398.xxxx), you’re in better shape — but only temporarily.
+
+11.2510 (October 2025) was the final 23H2 solution release
+All 23H2 configurations are supported only until April 2026
+
+After April 2026:
+
+23H2 receives no monthly updates
+Support cases will require upgrading before troubleshooting continues
+
+Case A: 23H2 OS with the Azure Local solution installed
+If the solution is already installed:
+
+Solution updates are mandatory, not optional
+They are the mechanism that moves you onto 24H2 (26100.xxxx)
+
+Azure Local follows a Modern Lifecycle cadence: you must stay within six months of the most recent release to remain supported.
+Case B: 23H2 OS only (solution not completed)
+Some environments upgraded the OS but never finished the solution upgrade.
+Microsoft explicitly treats this as a temporary state and expects you to:
+
+Complete post‑OS upgrade tasks
+Validate solution readiness
+Apply the solution upgrade
+
+Sitting in OS‑only 23H2 as April 2026 approaches is not a safe long‑term position.
+
+Microsoft’s Special Case: Stretched Clusters
+Microsoft’s generic OS‑upgrade guidance includes this statement:
+“There is an exception to the preceding recommendation if you are using stretch clusters. Stretch clusters should wait to directly move to version 26100.xxxx (24H2).”
+This sentence is easy to misread.
+Context for stretched clusters:
+You have effectively been on borrowed time. Microsoft accommodated stretched clusters on 23H2 for customers that already implemented them on 22H2, but that accommodation ends when 23H2 support ends in April 2026.
+In practical terms:
+
+There is no supported in‑place upgrade path for stretched clusters to 24H2
+After April 2026, stretched clusters are unsupported
+
+Your next supported state must be a non‑stretched 24H2 design, delivered through deployment and migration, not in‑place conversion.
+
+Rack‑Aware vs. Stretched: The 1 ms Line
+Rack‑aware clustering introduces a strict architectural constraint:
+
+≤ 1 millisecond round‑trip latency between racks or zones
+
+Rack‑aware clustering is intended for:
+
+A single site
+Fault domains within the same datacenter (racks or rooms), not distant locations
+
+Rule of thumb
+
+< 1 ms latency → Rack‑aware clustering is supported
+> 1 ms latency → Rack‑aware clustering is not supported
+
+New deployments only
+Rack‑aware clustering is supported only for new deployments.
+
+Converting an existing standard or stretched cluster in place to rack‑aware is not supported
+Migration requires a side‑by‑side deployment and workload move
+
+If your current “stretched” design is actually two racks or rooms in the same datacenter with sub‑millisecond latency, rack‑aware clustering is often the simpler and more future‑proof replacement.
+If your sites are truly separate, rack‑aware is not an option.
+
+Azure Local‑Managed VMs and the Arc Resource Bridge Boundary
+When changing cluster topology, VM type matters.
+Plain Hyper‑V VMs
+
+Managed via Hyper‑V, Windows Admin Center, or SCVMM
+Can be replicated, migrated, backed up, and restored between clusters
+Remain plain Hyper‑V VMs on the destination
+
+Azure Local‑managed VMs
+
+Created and managed through Azure via the Azure Local solution
+Their Azure identity is tied to a specific Arc Resource Bridge and custom location
+
+If you move or replicate the underlying VM to another cluster:
+
+It appears there as a plain Hyper‑V VM
+There is currently no supported mechanism to preserve or transfer its Azure Local VM identity across clusters
+
+You can still deploy the Azure Connected Machine (Arc) agent in the guest OS for OS‑level management, but that does not reconstitute it as an Azure Local‑managed VM.
+This is a design decision, not a migration footnote.
+
+Pulling It Together: A Practical Action Plan
+If you’re on 22H2
+
+Accept that you’re already out of support
+Use the direct 22H2 → 24H2 OS upgrade
+Complete the Azure Local solution upgrade
+
+If you’re on 23H2
+
+Treat April 2026 as a real deadline
+Keep taking solution updates to land on 24H2 (26100.xxxx)
+If you’re OS‑only, finish the solution upgrade now
+
+If you’re running a stretched cluster
+
+Recognize that stretched clusters are supported only through April 2026
+Plan for a non‑stretched 24H2 architecture
+Expect this to involve deployment and migration, not conversion
+
+
+One‑Paragraph Summary for Stakeholders
+
+Azure Local’s 22H2 and 23H2 releases are on borrowed time. 22H2 is already out of support, and 23H2 — including stretched clusters — stops receiving security and quality updates after April 2026. Microsoft now operates Azure Local on a monthly release train based on the 24H2 OS (26100.x). To remain supported, environments must move to 24H2 and the current solution train. This transition is also the point at which stretched cluster designs must be replaced with supported non‑stretched architectures, such as rack‑aware clusters for low‑latency single‑site deployments or independent clusters with replication for multi‑site scenarios.

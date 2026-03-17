@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AX Calculator</title>
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Scripts -->
+   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs/dist/pptxgen.bundle.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+  <script type="module" src="js/exportToPowerPoint.js" defer></script>
+  <script type="module" src="js/main.js" defer></script>
+  <script src="https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js"></script>
+  <script type ="module" src="/js/appinsights-init.js"></script>
+
+
+   
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    #main {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2rem;
+      padding: 2rem;
+    }
+    #sidebar {
+      width: 220px;
+    }
+    #config {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+    }
+    .grid-left {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(3, auto);
+      gap: 1rem;
+    }
+    .results-card {
+      height: 100%;
+    }
+    #visuals {
+      grid-column: 1 / -1;
+      margin-top: 2rem;
+    }
+  </style>
+
+</head>
+<body>
+
+<div id="main">
+  <!-- Sidebar Navigation -->
+  <nav id="sidebar" class="bg-light text-dark p-3 border-end">
+    <div class="d-flex flex-column gap-3">
+      <button id="manualConfigBtn" class="btn btn-outline-dark text-start" onclick="location.reload();">
+  <i class="bi bi-sliders"></i> Manual Configuration
+</button>
+      <button id="automatedSizingBtn" class="btn btn-outline-dark text-start" data-bs-toggle="modal" data-bs-target="#requirementsModal">
+        <i class="bi bi-calculator"></i> Automated Sizing
+      </button>
+      <a href="rvtools.html" id="importRVToolsBtn" class="btn btn-outline-dark text-start">
+        <i class="bi bi-hdd-network"></i> Import RVTools
+      </a>
+
+
+      <button id="exportPPTX" class="btn btn-primary mt-3">Create PowerPoint</button>
+      <button id="aboutBtn" class="btn btn-outline-dark text-start mt-3" onclick="openAboutModal()">
+  <i class="bi bi-info-circle"></i> About This Tool
+</button>
+
+    </div>
+  </nav>
+
+  <!-- Configuration + Results Layout -->
+  <div id="config">
+    <!-- Left: 2x3 Configuration Grid -->
+    <div class="grid-left">
+      <!-- Node Configuration -->
+      <div class="card p-3">
+        <h5><i class="bi bi-diagram-3"></i> Machine Configuration</h5>
+        <label for="nodes">Machines: <span id="nodeValue">4</span></label>
+        <input type="range" class="form-range" id="nodeSlider" min="1" max="16" value="4" />
+        <div class="d-flex justify-content-between mt-1"><span>1</span><span>16</span></div>
+      </div>
+
+      <!-- Node Type -->
+      <div class="card p-3">
+        <h5><i class="bi bi-cpu"></i> Machine Type</h5>
+        <div class="form-check"><input class="form-check-input" type="radio" name="nodeType" value="AX 660" id="AX660"><label class="form-check-label" for="AX660">AX 660</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="nodeType" value="AX 760" id="AX760" checked><label class="form-check-label" for="AX760">AX 760</label></div>
+    <div class="text-center mt-3">
+            <img id="nodeImage" src="" alt="" class="img-fluid d-none" />
+          </div>  
+    </div>
+
+      <!-- CPU & Memory -->
+      <div class="card p-3">
+        <h5><i class="bi bi-cpu-fill"></i> CPU</h5>
+        <select id="cpuChoice" class="form-select"><option>16 cores</option><option selected>32 cores</option><option>64 cores</option></select>
+        <h5 class="mt-3"><i class="bi bi-memory"></i> Memory</h5>
+        <select id="memorySize" class="form-select"><option>128 GB</option><option selected>256 GB</option><option>512 GB</option></select>
+      </div>
+
+      <!-- Disks & Resiliency -->
+      <div class="card p-3">
+        <h5><i class="bi bi-hdd"></i> Disks</h5>
+        <label for="disks">Disks per Machine: <span id="diskValue">4</span></label>
+        <input type="range" class="form-range" id="disks" min="2" max="24" value="4" />
+        <label for="diskSize" class="mt-2">Disk Size</label>
+        <select id="diskSize" class="form-select"><option value="0.96">960 GB</option><option>1.92 TB</option><option selected>3.84 TB</option><option>7.68 TB</option><option>15.36 TB</option></select>
+        <h5 class="mt-3"><i class="bi bi-shield-lock"></i> Resiliency</h5>
+        <select id="resiliency" class="form-select"><option>2-Way Mirror</option><option selected>3-Way Mirror</option></select>
+      </div>
+
+      <!-- Cluster Type -->
+      <div class="card p-3">
+        <h5><i class="bi bi-diagram-2"></i> Instance Type</h5>
+        <div class="form-check"><input class="form-check-input" type="radio" name="clusterType" id="converged" value="Converged"><label class="form-check-label">Converged</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="clusterType" id ="nonConverged" value="Non-Converged" checked><label class="form-check-label">Non-Converged</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="clusterType" id ="switchless" value="Switchless"><label class="form-check-label">Switchless</label></div>
+      </div>
+<!-- Switch Mode -->
+<div class="card p-3" id="switchModePanel">
+  <h5 class="card-title"><i class="bi bi-toggle2-on"></i> Switch Mode</h5>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="switchMode" value="separate" id="separate" checked>
+    <label class="form-check-label" for="separate">Separate</label>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="radio" name="switchMode" value="shared" id="shared">
+    <label class="form-check-label" for="shared">Shared</label>
+  </div>
+</div>
+      <!-- Connection Type -->
+      <div class="card p-3">
+        <h5><i class="bi bi-toggle2-on"></i> Connection Type</h5>
+        <div class="form-check"><input class="form-check-input" type="radio" name="connectiontype" value="Twinax" checked><label class="form-check-label">Twinax</label></div>
+        <div class="form-check"><input class="form-check-input" type="radio" name="connectiontype" value="SFP"><label class="form-check-label">SFP</label></div>
+      </div>
+    </div>
+
+    <!-- Right: Results Card -->
+   <div class="results-right">
+  <div class="card results-card p-3 h-100">
+    <h5><i class="bi bi-info-circle"></i> Results</h5>
+    <div id="output" class="alert alert-info">Results will appear here.</div>
+
+    <!-- Optional details (may be hidden) -->
+    <div id="sizingDetails" class="d-none">
+      <div id="requirementsSummary" class="mt-3 text-muted"></div>
+    </div>
+
+    <!-- Always-visible chart (outside sizingDetails) -->
+    <div id="sizingChartContainer" class="mt-4">
+      <h5><i class="bi bi-bar-chart-line"></i> Storage Chart</h5>
+      <canvas id="storageChart"></canvas>
+      <br>
+      <h5><i class="bi bi-bar-chart-line"></i> Resources Provided</h5><br>
+        <div id="relativeFillBarChart"></div>
+    </div>
+  </div>
+</div>
+<div class="card p-3"><h5><i class="bi bi-diagram-3-fill"></i> Instance Summary</h5><div id="clusterSummaryContainer" class="cluster-summary-grid"></div></div>
+  <!-- Full-width Visuals Section -->
+  <div id="visuals" class="d-none">
+    <div class="card p-3">
+      <h5><i class="bi bi-diagram-3-fill"></i> Topology Preview</h5>
+      <div class="topology-wrapper">
+        <div id="legendPanel">
+          <h6>Connection Types</h6>
+          <!-- Legend content -->
+        </div>
+        <div class="diagram-panel">
+          <div class="diagram-content"></div>
+          <svg id="connectionLines"></svg>
+          <div id="nodeGrid">
+            <div id="switchGrid">
+              <div class="switch-row" id="switchRowTop"></div>
+              <div class="switch-row" id="switchRowBottom"></div>
+            </div>
+            <div class="node-row" id="nodeRow"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> <!-- End #visuals -->
+  <div class="mt-3">
+  <button id="toggleVisualsBtn" class="btn btn-outline-secondary">
+    Show Visuals
+  </button>
+</div>
+
+</div> <!-- End #main -->
+
+<!-- Requirements Modal (Step 1) -->
+<div class="modal fade" id="requirementsModal" tabindex="-1" aria-labelledby="requirementsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="requirementsModalLabel">
+          <i class="bi bi-calculator"></i> Sizing Requirements
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Sizing Mode Toggle -->
+        <label for="sizingMode">Sizing Method</label>
+        <select id="sizingMode" class="form-select">
+          <option value="vm" selected>Size Based on VMs</option>
+          <option value="infra">Size Based on Infrastructure Totals</option>
+          <option value="workload">Size Based on Workloads</option>
+        </select>
+
+        <!-- VM-Based Section -->
+        <div id="vmSizingSection" class="mt-3">
+          <label for="vmCount">Number of VMs</label>
+          <input type="number" id="vmCount" class="form-control" value="50">
+
+          <label for="vCPU" class="mt-2">vCPUs per VM</label>
+          <input type="number" id="vCPU" class="form-control" value="2">
+
+          <label for="vcpuRatio">vCPU/Core Ratio</label>
+          <input type="number" id="vcpuRatio" class="form-control" value="4" min="1" step="0.1" />
+          <small class="form-text text-muted">
+            Default is 4:1 (each vCPU = 0.25 cores). Adjust if your workload is more CPU-bound.
+          </small>
+
+          <br><label for="ramPerVM" class="mt-2">RAM per VM (GB)</label>
+          <input type="number" id="ramPerVM" class="form-control" value="8">
+
+          <label for="storagePerVM" class="mt-2">Storage per VM (GB)</label>
+          <input type="number" id="storagePerVM" class="form-control" value="100">
+        </div>
+
+        <!-- Infra-Based Section -->
+        <div id="infraSizingSection" class="mt-3 d-none">
+          <label for="cpuUnit">CPU Measurement</label>
+          <select id="cpuUnit" class="form-select">
+            <option value="cores" selected>Total Cores</option>
+            <option value="ghz">Total GHz</option>
+          </select>
+
+          <div id="coreInputWrapper">
+            <label for="cpuRequirement" class="mt-2">Total CPU</label>
+            <input type="number" id="cpuRequirement" class="form-control" value="40">
+          </div>
+
+          <div id="ghzInputWrapper" class="d-none">
+            <label for="ghzRequirement" class="mt-2">Total GHz</label>
+            <input type="number" id="ghzRequirement" class="form-control" value="1000">
+          </div>
+
+          <label for="totalRAM" class="mt-2">Total RAM (GB)</label>
+          <input type="number" id="totalRAM" class="form-control" value="512">
+
+          <label for="totalStorage" class="mt-2">Total Storage (TiB)</label>
+          <input type="number" id="totalStorage" class="form-control" value="20">
+        </div>
+
+        <!-- Workload-Based Section -->
+        <div id="workloadSizingSection" class="mt-3 d-none">
+          <div id="workloadList"></div>
+          <button id="addWorkloadBtn" type="button" class="btn btn-sm btn-outline-primary mt-2">
+            + Add Workload
+          </button>
+          
+        </div>
+
+        <!-- Universal Controls -->
+        <hr>
+        <label for="haLevel">Resiliency Level</label>
+        <select id="haLevel" class="form-select">
+          <option value="n">N</option>
+          <option value="n+1" selected>N+1</option>
+        </select>
+
+        <label for="growthPercentage" class="mt-2">Growth Percentage (%)</label>
+        <input type="number" id="growthPercentage" class="form-control" value="0">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="runSizing">
+          <i class="bi bi-gear"></i> Calculate
+        </button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Modal (Step 2) -->
+<div class="modal fade" id="summaryModal" tabindex="-1" aria-labelledby="summaryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable modal-wide">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="summaryModalLabel">
+          <i class="bi bi-list-check"></i> Workload Summary
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="workloadSummaryContent"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="proceedSizingBtn">Proceed to Cluster Sizing</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal" id="backToRequirementsBtn">Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</body>
+</html>

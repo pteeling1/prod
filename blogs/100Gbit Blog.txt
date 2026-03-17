@@ -1,0 +1,180 @@
+Making the Case for 100 GbE Networking with Azure Local and Storage Spaces Direct
+Why dense NVMe nodes change the networking conversation sooner than most designs expect
+
+Introduction
+As NVMe becomes the default choice for modern hyperconverged infrastructure, one question comes up repeatedly in both Storage Spaces Direct (S2D) and Azure Local designs:
+
+When does 100 GbE networking actually make sense?
+
+For many years, 10 GbE — and later 25 GbE — was sufficient for most storage workloads. Even today, dual‑port 25 GbE designs are often considered “more than enough.” But once you start building dense all‑NVMe nodes, those assumptions begin to break down.
+
+This article explains:
+
+Why 100 GbE becomes justified earlier than expected in all‑NVMe S2D and Azure Local deployments
+Why roughly 12 NVMe drives per node is a practical, conservative inflection point
+How the economics of 4 × 25 GbE versus 2 × 100 GbE work out in real designs
+Why the same logic applies across vendors (for example, Dell S5248F‑ON / S5232F‑ON and Cisco Nexus 93180YC‑FX / 9336C‑FX2)
+Design Assumptions (Made Explicit)
+Before going further, it’s important to anchor the discussion in realistic design practice:
+
+No serious production S2D or Azure Local design uses a single storage network port.
+All scenarios discussed here assume:
+
+At least two network ports per node
+SMB Multichannel enabled
+SMB Direct (RDMA) in use
+A baseline of 2 × 25 GbE networking for storage/compute traffic
+This reflects real‑world Azure Stack HCI and Azure Local designs and avoids straw‑man comparisons like “100 GbE vs a single 10 GbE link.”
+
+How NVMe Moves the Bottleneck to the Network
+A single enterprise NVMe drive is capable of multiple gigabytes per second of throughput. When a node contains 12, 16, or 24 NVMe drives, the aggregate storage capability becomes enormous.
+
+In Storage Spaces Direct, all east‑west storage traffic — including mirrored writes — flows over the network using SMB 3 with RDMA. Azure Local uses the same underlying S2D mechanisms for its local storage.
+
+As NVMe density increases, the limiting factor stops being the media and quickly becomes available network bandwidth. At that point:
+
+Adding more NVMe increases peak potential
+But does not improve realized performance unless the network scales with it
+If the network doesn’t keep up, you effectively pay for NVMe performance that never reaches the workload.
+
+What VMFleet Tells Us About Real‑World Limits
+VMFleet, Microsoft’s official S2D performance and validation tool, is designed to:
+
+Generate highly parallel I/O
+Stress storage, CPU, and network simultaneously
+Expose architectural bottlenecks rather than idealized peaks
+In all‑NVMe S2D clusters, VMFleet runs consistently show that:
+
+Nodes can sustain well over 5 GB/s of storage throughput
+Network links saturate before NVMe does
+Scaling flattens once aggregate NIC bandwidth is consumed
+This behavior appears even when SMB Multichannel is active and multiple NICs are available. Azure Local, running on the same S2D foundations, exhibits the same pattern when you push it with dense NVMe and realistic I/O mixes.
+
+Dual‑Port 25 GbE: Good, But Not a 50 GbE Pipe
+With 2 × 25 GbE, SMB Multichannel allows traffic to flow across both links concurrently. This meaningfully increases available bandwidth compared to a single port, but it’s not a perfect doubling.
+
+It’s crucial to understand what SMB Multichannel does — and does not — provide:
+
+It balances connections, not individual I/O operations
+Storage traffic includes replica writes, metadata, and control flows
+Mirror traffic competes with client I/O for the same NICs
+Utilization across ports is rarely perfectly even under sustained load
+As a result, dual‑port 25 GbE does not behave like a single flat 50 GbE pipe for storage workloads.
+
+Practical per‑node reality with dual‑port 25 GbE
+Theoretical aggregate bandwidth: 6.25 GB/s
+Realistic sustained throughput: approximately 4.5–5.0 GB/s
+Common VMFleet ceiling: around 5 GB/s
+That’s a substantial improvement over a single link — but it’s also a ceiling that dense NVMe nodes can hit surprisingly quickly.
+
+Where NVMe Density Meets the Network Ceiling
+Once we assume 2 × 25 GbE as the baseline, a clear pattern emerges:
+
+NVMe drives per node	Network behavior
+≤ 8 NVMe	Network rarely limits performance
+~12 NVMe	Network pressure becomes visible under sustained load
+16+ NVMe	Network is consistently the bottleneck in stress scenarios
+
+
+At roughly 12 NVMe drives per node, the node is often capable of driving more throughput than dual‑port 25 GbE can sustain under continuous load. Beyond that point, performance gains from additional NVMe are increasingly constrained by the network.
+
+This is the point where 100 GbE stops being “nice to have” and becomes architecturally justified.
+
+Why 100 GbE Changes the Equation
+Moving to 100 GbE does more than increase peak bandwidth:
+
+It removes the network as the primary limiter
+It improves performance consistency under contention
+It provides headroom for growth and future workloads
+It avoids costly retrofits later (re‑cabling, new switches, downtime)
+With dual‑port 100 GbE:
+
+Aggregate bandwidth is high enough that storage or CPU once again become the limiting factors
+NVMe density can scale without immediately flattening performance
+The system behaves as customers expect when they invest in NVMe: adding drives actually results in more usable performance
+This is why many all‑NVMe S2D and Azure Local reference architectures move directly to 100 GbE rather than trying to “stretch” 25 GbE with additional ports.
+
+The Real Design Choice: 4 × 25 GbE vs 2 × 100 GbE
+Once you accept that 2 × 25 GbE will not be enough for roughly 12–16 NVMe per node under sustained load, the design conversation changes:
+
+You are no longer choosing between 25 GbE vs 100 GbE.
+You are choosing between 4 × 25 GbE and 2 × 100 GbE.
+
+Option A: 4 × 25 GbE per node
+Doubles the NIC ports per server (more NICs or higher‑port adapters)
+Consumes 4 TOR ports per node
+Requires twice as many DACs/optics
+Increases cabling complexity and configuration overhead
+Option B: 2 × 100 GbE per node
+Keeps you at 2 TOR ports per node
+Uses half the cables
+Delivers 2× the aggregate bandwidth of a 4 × 25 GbE (100 Gbit/s) design
+Simplifies operations and leaves more free ports for growth
+Even if a 100G optic or port costs more per unit than a 25G equivalent, multiplying the 25G option by four ports per node (and four optics) erodes that apparent savings very quickly.
+
+In real designs, the total fabric cost for 4 × 25 GbE versus 2 × 100 GbE frequently lands in the same ballpark, especially once you include support and cabling. In some cases, the 100 GbE option is actually slightly cheaper, while delivering:
+
+More per‑node bandwidth
+Fewer TOR ports consumed
+Fewer points of failure
+A cleaner topology
+Concrete Platform Examples (Without Publishing Prices)
+You don’t need vendor‑specific net prices to see the pattern. It’s enough to look at the roles and port profiles of typical switches in each ecosystem.
+
+25G ToR: Dell S5248F‑ON and Cisco Nexus 93180YC‑FX
+These are classic 25G ToR platforms:
+
+Dell S5248F‑ON
+
+48 × 10/25GbE SFP28 downlinks
+Multiple 40/100GbE QSFP28 uplinks in 1U
+Cisco Nexus 93180YC‑FX / FX3
+
+48 × 1/10/25GbE SFP/SFP+/SFP28 downlinks
+6 × 40/100GbE QSFP28 uplinks in 1U
+For a 4 × 25 GbE per node design, these switches must dedicate four downlink ports per node and four SFP28 DACs or optics per node.
+
+100G leaf/spine: Dell S5232F‑ON and Cisco Nexus 9336C‑FX2
+These are dense 100GbE platforms:
+
+Dell S5232F‑ON
+
+32 × 40/100GbE QSFP28 ports
+Often used as 100G leaf/spine or as a high‑performance ToR with breakouts
+Cisco Nexus 9336C‑FX2
+
+36 × 40/100GbE QSFP28 ports
+Positioned similarly as a 100G leaf/spine switch
+For a 2 × 100 GbE per node design, these switches only need two QSFP28 ports per node and two DACs or optics per node.
+
+Across both vendors, the same pattern appears:
+
+The 4 × 25 GbE design burns twice as many TOR ports and optics per node as the 2 × 100 GbE design
+The total cost of the fabric (switches + optics + support) ends up very similar once you account for the extra 25G ports and cabling
+The 100G design offers more per‑node headroom and a simpler topology
+That’s why, in real customer designs, the argument for 100 GbE is less about “premium bandwidth” and more about rationalizing the fabric around dense NVMe nodes.
+
+A Simple, Defensible Rule of Thumb
+If you want a guideline that’s easy to communicate and hard to argue with, use this:
+
+If a Storage Spaces Direct or Azure Local node can sustain more than ~5 GB/s of storage throughput, 100 GbE networking is justified.
+
+Dense NVMe nodes reach that line quickly — often before they hit 16 drives per system.
+
+Equivalently:
+
+If you are planning for roughly 12 or more NVMe drives per node, design for 100 GbE from day one.
+Don’t assume 2 × 25 GbE will scale with you.
+
+This is deliberately conservative. It doesn’t require exotic workloads, perfect tuning, or lab‑only conditions. It’s based on what real VMFleet tests and production systems actually do under load.
+
+Conclusion
+All‑NVMe Storage Spaces Direct and Azure Local fundamentally change where performance bottlenecks appear. Even with SMB Multichannel and dual‑port networking, dense NVMe nodes can saturate available bandwidth earlier than many designs anticipate.
+
+Recommending 100 GbE networking for systems with more than about 12 NVMe drives per node is:
+
+Conservative rather than aggressive
+Architecturally sound, based on real tools and behavior (VMFleet, S2D internals)
+Aligned with the economics of 4 × 25 GbE vs 2 × 100 GbE fabrics
+Focused on delivering usable performance, not just impressive component specs
+If you’re investing in dense NVMe, the network needs to keep up — or it will define your limits. In that world, 100 GbE is not a luxury upgrade; it’s the rational default once you pass a certain NVMe density.

@@ -107,18 +107,33 @@ export function exportToPowerPoint(result, requirements, diagramImage) {
       [{ text: "Requirement", options: { bold: true } }, " "],
       ["Resiliency", req.haLevel || "—"],
       ["Required Cores", `${(req.totalCPU || req.totalCores || 0).toLocaleString()}`],
+      ["Required GHz", req.totalGHz ? `${parseFloat(req.totalGHz).toFixed(0)} GHz` : "—"],
       ["Required RAM", `${(req.totalRAM || req.totalMemoryGB || 0).toLocaleString()} GB`],
       ["Required Storage", `${parseFloat(req.totalStorage || req.usableTiB || 0).toFixed(2)} TiB`],
       ["Growth", `${((req.growthPct || 0) * 100).toFixed(1)}%`]
     ];
   }
 
+  function buildPostFailureTable(res) {
+    const pf = res.totalClusterResources?.postFailure;
+    const usableGHz = pf?.usableGHz || 0;
+    return [
+      [{ text: "Post-Failure Capacity (N-1 Resiliency)", options: { bold: true } }, " "],
+      ["Active Nodes", pf?.activeNodes || 0],
+      ["Cores (available)", `${(pf?.usableCores || 0).toLocaleString()}`],
+      ["GHz (available)", usableGHz ? `${parseFloat(usableGHz).toFixed(0)} GHz` : "—"],
+      ["RAM (available)", `${(pf?.usableMemoryGB || 0).toLocaleString()} GB`]
+    ];
+  }
+
   function buildRecommendationsTable(res) {
+    const usableGHz = res.totalClusterResources?.normal?.usableGHz || res.totalGHz || 0;
     return [
       [{ text: "Recommendation", options: { bold: true } }, " "],
       ["Clusters / Instances", `${res.clusterCount || 1}`],
       ["Nodes / Machines", `${res.nodeCount || 1}`],
       ["Total Cores (available)", `${(res.totalCores || 0).toLocaleString()} (${(res.totalUsableCores || res.totalCores || 0).toLocaleString()})`],
+      ["Total GHz (available)", usableGHz ? `${parseFloat(usableGHz).toFixed(0)} GHz` : "—"],
       ["Total Memory (available)", `${(res.totalMemoryGB || 0).toLocaleString()} GB (${(res.totalUsableMemory || res.totalMemoryGB || 0).toLocaleString()} GB)`],
       ["Disks", `${res.disksPerNode || 0} × ${res.diskSizeTB || 0} TB`],
       ["Usable Storage", `${res.usableTiB || 0} TiB`]
@@ -218,6 +233,26 @@ export function exportToPowerPoint(result, requirements, diagramImage) {
       color: "FFFFFF",
       border: { pt: 0 },
       colW: [1.3, 1.7]
+    });
+
+    // Post-failure capacity section
+    slide.addText("", {
+      shape: pptx.shapes.RECTANGLE,
+      x: 0.5,
+      y: 2.8,
+      w: 9.3,
+      h: 1.6,
+      fill: { type: "solid", color: "000000", transparency: 50 },
+      line: "none"
+    });
+
+    slide.addTable(sanitizeTable(buildPostFailureTable(result)), {
+      x: 0.5, y: 2.8, w: 9.3,
+      fontSize: 8,
+      fontFace: "Arial",
+      color: "FFFFFF",
+      border: { pt: 0 },
+      colW: [3.5, 2.0, 1.8, 1.5, 0.5]
     });
 
     addTimestampFooter(slide, exportTimestamp);

@@ -219,7 +219,7 @@ cpuScoreLog.push({
       score
     };
 
-    if (!bestCandidate || score < bestCandidate.score) {
+    if (!bestCandidate || score > bestCandidate.score) {
       bestCandidate = candidate;
     } else if (score === bestCandidate.score && cpu.base_clock_GHz > bestCandidate.cpu.base_clock_GHz) {
       // Tie-breaker: if scores are equal, prefer higher clock speed
@@ -239,7 +239,7 @@ cpuScoreLog.push({
     }
 
     if (cpu.model.includes("Gold 6") &&
-        (!bestGoldCandidate || score < bestGoldCandidate.score)) {
+        (!bestGoldCandidate || score > bestGoldCandidate.score)) {
       bestGoldCandidate = candidate;
     } else if (cpu.model.includes("Gold 6") && score === bestGoldCandidate.score && 
                cpu.base_clock_GHz > bestGoldCandidate.cpu.base_clock_GHz) {
@@ -346,11 +346,17 @@ function selectOptimalCpuForGHz(requiredGHz, totalRAM, totalStorageTiB, haLevel,
     const ghzOvershootPenalty = calculateResourceOvershootPenalty(actualGHz, requiredGHz, 6, 3000);
     const overshootRatio = actualGHz / requiredGHz;
     const tightFitBonus = overshootRatio <= 1.2 ? -1000 : 0;
+    
+    // Compute density: cores × clock_GHz. Higher is better, contributes more per node.
+    // This ensures we prefer 64c @ 1.9GHz over 8c @ 3.9GHz
+    const totalComputePerNode = usableCoresPerNode * cpu.base_clock_GHz;
+    const computeDensityBonus = Math.round((totalComputePerNode - 100) * -5); // -5 per unit above 100
+    
     const ghzDensityPenalty = usableGHzPerNode < 160 ? 1000 : 0;
     const sweetSpot = nodesNeeded >= 3 && nodesNeeded <= 5;
     const sweetSpotBonus = sweetSpot ? -3000 : 0;
 
-    const totalScore = efficiencyScore + nodePenalty + ghzOvershootPenalty + tightFitBonus + ghzDensityPenalty + sweetSpotBonus;
+    const totalScore = efficiencyScore + nodePenalty + ghzOvershootPenalty + tightFitBonus + computeDensityBonus + ghzDensityPenalty + sweetSpotBonus;
 
     cpuScoreLog.push({
       CPU: cpu.model,
@@ -373,7 +379,7 @@ function selectOptimalCpuForGHz(requiredGHz, totalRAM, totalStorageTiB, haLevel,
       score: totalScore
     };
 
-    if (!bestCandidate || totalScore < bestCandidate.score) {
+    if (!bestCandidate || totalScore > bestCandidate.score) {
       bestCandidate = candidate;
     } else if (totalScore === bestCandidate.score && cpu.base_clock_GHz > bestCandidate.cpu.base_clock_GHz) {
       // Tie-breaker: if scores are equal, prefer higher clock speed
@@ -846,9 +852,16 @@ let postFailureCapabilities = null;
  
   // Step 1: Get candidate CPU lists and prepare for parallel constraint calculation
   const correctCpuList = getCpuListForChassis(chassisModel);
-  const filteredCpuList = req.cpuModel
+  let filteredCpuList = req.cpuModel
     ? correctCpuList.filter(cpu => cpu.model === req.cpuModel)
     : correctCpuList;
+
+  // Filter out excluded CPUs if provided
+  if (req.excludedCpus && Array.isArray(req.excludedCpus) && req.excludedCpus.length > 0) {
+    console.log(`🚫 Excluding CPU models: ${req.excludedCpus.join(', ')}`);
+    filteredCpuList = filteredCpuList.filter(cpu => !req.excludedCpus.includes(cpu.model));
+    console.log(`   Filtered CPU list: ${filteredCpuList.length} models remaining`);
+  }
 
   // Start with a base CPU selection to understand core/GHz requirements
   let baseCpuSelection;
@@ -991,33 +1004,25 @@ let postFailureCapabilities = null;
           usableTiB = diskConfig.usableTiB;
           console.log(`DEBUG: assigned usableTiB = ${usableTiB}`);
         } else {
-          // Multiple clusters - proportional allocation
-          const reservedNodes = Math.min(size, 4);
-          const reservedDrives = reservedNodes * 1;
-          const fullNodes = size - reservedNodes;
-          const reservedDiskCount = diskConfig.disksPerNode - 1;
-          const totalDrives = size * diskConfig.disksPerNode;
-          const dataDrives = totalDrives - reservedDrives;
-          const fullDiskCount = diskConfig.disksPerNode;
-          const diskSizeTB = diskConfig.diskSizeTB;
-          const usableRatio = 1 / 1.1024;
-          const reservedTiB = reservedNodes * reservedDiskCount * diskSizeTB * usableRatio;
-          const fullTiB = fullNodes * fullDiskCount * diskSizeTB * usableRatio;
-          const rawTiB = reservedTiB + fullTiB;
-          usableTiB = storageResiliency === "4-way"
-            ? rawTiB / 4
-            : storageResiliency === "3-way"
-              ? rawTiB / 3
-              : storageResiliency === "2-way"
-                ? rawTiB / 2
-                : rawTiB;
+          // Multiple clusters - proportional allocation from pre-calculated total
+          // diskConfig.usableTiB is the total for all nodes;
+          // distribute proportionally based on cluster size relative to total node count
+          const proportionalShare = size / nodeCount;
+          const totalUsable = parseFloat(diskConfig.usableTiB); // diskConfig.usableTiB is a string
+          usableTiB = totalUsable * proportionalShare;
+          console.log(`   📊 Cluster ${String.fromCharCode(65 + index)}: ${size} nodes (${(proportionalShare * 100).toFixed(1)}% of ${nodeCount}) → ${usableTiB.toFixed(2)} TiB usable`);
         }
 
         const postFailureNodes = Math.max(size - 1, 1);
         const postFailureCores = postFailureNodes * usableCoresPerNode - SYS_CPU;
         const postFailureGHz = postFailureCores * selectedCpu.base_clock_GHz;
-        // Don't reject valid configurations - only proceed if post-failure can still meet requirements
-        if (totalGHz > 0 && postFailureGHz < totalGHz) return null;
+        
+        // For multi-cluster proportional check: each cluster needs its proportional share of GHz
+        const clusterProportionalShare = size / nodeCount;
+        const proportionalGHzRequirement = totalGHz * clusterProportionalShare;
+        
+        // Don't reject valid configurations - only proceed if post-failure can still meet proportional requirements
+        if (totalGHz > 0 && postFailureGHz < proportionalGHzRequirement) return null;
         const postFailureRAM = postFailureNodes * memoryConfig.usableMemoryPerNode;
 
         return {
@@ -1137,12 +1142,13 @@ const totalPostFailure = finalClusterSummaries.reduce((acc, cluster) => {
 });
 const primaryStorageConfig = diskConfig; // Place this just before the result block
 const clusterCount = finalClusterSummaries.length;
+const clusterSizes = finalClusterSummaries.map(cluster => cluster.nodeCount); // Derive from actual summaries, not split array
 const totalReserveTiB = finalClusterSummaries
   .reduce((sum, cluster) => sum + cluster.reserveTiB, 0);
 const result = {
   // Cluster Configuration
   nodeCount: finalNodeCount, clusterCount,
- clusterSizes: finalClusters,
+ clusterSizes: clusterSizes,
 clusterSummaries: finalClusterSummaries,
   chassisModel,
 

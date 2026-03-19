@@ -219,7 +219,7 @@ cpuScoreLog.push({
       score
     };
 
-    if (!bestCandidate || score > bestCandidate.score) {
+    if (!bestCandidate || score < bestCandidate.score) {
       bestCandidate = candidate;
     } else if (score === bestCandidate.score && cpu.base_clock_GHz > bestCandidate.cpu.base_clock_GHz) {
       // Tie-breaker: if scores are equal, prefer higher clock speed
@@ -239,7 +239,7 @@ cpuScoreLog.push({
     }
 
     if (cpu.model.includes("Gold 6") &&
-        (!bestGoldCandidate || score > bestGoldCandidate.score)) {
+        (!bestGoldCandidate || score < bestGoldCandidate.score)) {
       bestGoldCandidate = candidate;
     } else if (cpu.model.includes("Gold 6") && score === bestGoldCandidate.score && 
                cpu.base_clock_GHz > bestGoldCandidate.cpu.base_clock_GHz) {
@@ -379,7 +379,7 @@ function selectOptimalCpuForGHz(requiredGHz, totalRAM, totalStorageTiB, haLevel,
       score: totalScore
     };
 
-    if (!bestCandidate || totalScore > bestCandidate.score) {
+    if (!bestCandidate || totalScore < bestCandidate.score) {
       bestCandidate = candidate;
     } else if (totalScore === bestCandidate.score && cpu.base_clock_GHz > bestCandidate.cpu.base_clock_GHz) {
       // Tie-breaker: if scores are equal, prefer higher clock speed
@@ -537,13 +537,12 @@ function selectDiskConfig(requiredUsableTiB, nodeCount, chassisModel, overrideRe
   function diskScore(config) {
     const { disksPerNode, diskSizeTB, usableTiB } = config;
 
-    const baseScore = disksPerNode * 80;
     const smallDrivePenalty = allowSmallFootprint ? 0 : (diskSizeTB < 1.92 ? 1000 : 0);
     const ultraLowPenalty = allowSmallFootprint ? 0 : (disksPerNode < 4 ? 500 : 0);
-    const sweetSpotBonus = (disksPerNode >= 6 && disksPerNode <= 16) ? -200 : 0;
+    const nineAwareSixtyPenalty = (diskSizeTB === 0.96) ? 2000 : 0;
     const overshootPenalty = calculateStorageOvershootPenalty(usableTiB, requiredUsableTiB);
 
-    return baseScore + smallDrivePenalty + ultraLowPenalty + sweetSpotBonus + overshootPenalty;
+    return smallDrivePenalty + ultraLowPenalty + nineAwareSixtyPenalty + overshootPenalty;
   }
 
   const viable = candidates.filter(c => c.meetsRequirement);
@@ -819,10 +818,6 @@ function sizeCluster(req) {
   console.log(`   totalCPU: ${totalCPU}, totalGHz: ${totalGHz}`);
   console.log(`   totalRAM: ${totalRAM} GB, totalStorage: ${totalStorage} TiB`);
   console.log(`   haLevel: ${haLevel}, rackAwareConfig: ${rackAwareConfig}`);
-  
-  // Adjust memory requirement to account for max memory utilization constraint
-  // If maxMemoryUtilization is 60%, we need to provision for totalRAM / 0.60
-  const adjustedTotalRAM = totalRAM / maxMemoryUtilization;
 
   // EARLY RACK-AWARE CHECK: Determine fixed node count and resiliency if specified
   let effectiveStorageResiliency = "3-way"; // default
@@ -912,10 +907,10 @@ let postFailureCapabilities = null;
       // Prioritize GHz mode if explicitly set
       if (totalGHz > 0) {
         primaryConstraint = "GHz";
-        baseCpuSelection = selectOptimalCpuForGHz(totalGHz, adjustedTotalRAM, totalStorage, haLevel, filteredCpuList, chassisModel);
+        baseCpuSelection = selectOptimalCpuForGHz(totalGHz, totalRAM, totalStorage, haLevel, filteredCpuList, chassisModel);
       } else if (totalCPU > 0) {
         primaryConstraint = "Cores";
-        baseCpuSelection = selectOptimalCpuForCores(totalCPU, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel, disableSweetSpot, batchMode);
+        baseCpuSelection = selectOptimalCpuForCores(totalCPU, totalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel, disableSweetSpot, batchMode);
       } else {
         throw new Error("Must specify either totalCPU (cores) or totalGHz requirement");
       }
@@ -923,7 +918,7 @@ let postFailureCapabilities = null;
       console.warn(`⚠️ Primary CPU selection failed: ${err.message}`);
       console.warn("🔁 Falling back to 8-core sizing attempt…");
       try {
-        baseCpuSelection = selectOptimalCpuForCores(8, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel, disableSweetSpot, batchMode);
+        baseCpuSelection = selectOptimalCpuForCores(8, totalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel, disableSweetSpot, batchMode);
         primaryConstraint = "Fallback (8 cores)";
       } catch (fallbackErr) {
         throw new Error(`❌ Fallback sizing also failed: ${fallbackErr.message}`);
@@ -948,13 +943,13 @@ let postFailureCapabilities = null;
   // 2. Memory constraint: nodes needed to meet memory requirement with utilization limit
   // Start from CPU node count, not hardcoded 3, so memory adapts to CPU decision
   const memoryCalcNodeCount = rackAwareSizingNodeCount || cpuNodesNeeded;
-  let tempMemoryConfig = selectOptimalMemoryConfig(adjustedTotalRAM, memoryCalcNodeCount, haLevel, chassisModel);
+  let tempMemoryConfig = selectOptimalMemoryConfig(totalRAM, memoryCalcNodeCount, haLevel, chassisModel);
   const usableMemoryPerNode = tempMemoryConfig.usableMemoryPerNode;
   
   // Calculate nodes needed for the adjusted memory amount
   let memoryNodesNeeded = haLevel === "n+1"
-    ? Math.ceil(adjustedTotalRAM / usableMemoryPerNode) + 1
-    : Math.ceil(adjustedTotalRAM / usableMemoryPerNode);
+    ? Math.ceil(totalRAM / usableMemoryPerNode) + 1
+    : Math.ceil(totalRAM / usableMemoryPerNode);
 
   // 3. For rack-aware, use the total cluster node count; otherwise use max of constraints
   let nodeCount = rackAwareNodeCount !== null ? rackAwareNodeCount : Math.max(cpuNodesNeeded, memoryNodesNeeded);
@@ -971,7 +966,7 @@ let postFailureCapabilities = null;
   const usableCoresPerNode = physicalCoresPerNode;
   
   // Use memory config appropriate for the final node count
-  let memoryConfig = selectOptimalMemoryConfig(adjustedTotalRAM, nodeCount, haLevel, chassisModel);
+  let memoryConfig = selectOptimalMemoryConfig(totalRAM, nodeCount, haLevel, chassisModel);
 
   // Step 2: Storage loop - find minimum nodes needed for storage constraint
   // This may increase nodeCount beyond CPU/Memory requirements
@@ -1047,7 +1042,7 @@ let postFailureCapabilities = null;
             usableMemoryGB: postFailureRAM,
             meetsCoreRequirement: totalCPU > 0 ? postFailureCores >= totalCPU * (size / nodeCount) : true,
             meetsGHzRequirement: totalGHz > 0 ? postFailureGHz >= totalGHz * (size / nodeCount) : true,
-            meetsRamRequirement: postFailureRAM >= adjustedTotalRAM * (size / nodeCount)
+            meetsRamRequirement: postFailureRAM >= totalRAM * (size / nodeCount)
           }
         };
       }).filter(Boolean);
@@ -1084,7 +1079,7 @@ let postFailureCapabilities = null;
   console.log(`📊 Node requirements - CPU: ${cpuNodesNeeded}, Memory: ${memoryNodesNeeded}, Storage: ${storageNodesNeeded}, Final: ${finalNodeCount}`);
 
   // Recalculate memory configuration for the final node count
-  const finalMemoryConfig = selectOptimalMemoryConfig(adjustedTotalRAM, finalNodeCount, haLevel, chassisModel);
+  const finalMemoryConfig = selectOptimalMemoryConfig(totalRAM, finalNodeCount, haLevel, chassisModel);
 
   // Recalculate CPU selection for the final node count
   // With more nodes available, we might be able to select a lower-core CPU while still meeting requirements
@@ -1094,8 +1089,8 @@ let postFailureCapabilities = null;
     if (!rackAwareConfig) {
       // Use the full CPU selection algorithm to pick the optimal CPU for the final node count
       const recalcSelection = totalCPU > 0 
-        ? selectOptimalCpuForCores(totalCPU, adjustedTotalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel, disableSweetSpot, batchMode)
-        : selectOptimalCpuForGHz(totalGHz, adjustedTotalRAM, totalStorage, haLevel, filteredCpuList, chassisModel);
+        ? selectOptimalCpuForCores(totalCPU, totalRAM, totalStorage, haLevel, null, filteredCpuList, maxCPUUtilization, maxMemoryUtilization, chassisModel, disableSweetSpot, batchMode)
+        : selectOptimalCpuForGHz(totalGHz, totalRAM, totalStorage, haLevel, filteredCpuList, chassisModel);
       
       if (recalcSelection && recalcSelection.cpu) {
         // CRITICAL: Validate that the recalculated CPU can work with finalNodeCount nodes
